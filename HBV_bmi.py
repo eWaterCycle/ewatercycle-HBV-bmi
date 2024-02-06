@@ -1,11 +1,11 @@
-from empty_bmi import EmptyBmi
+from bmipy import Bmi
 from typing import Any, Tuple
 import numpy as np
 import pandas as pd
 import json
 
 
-class HBV(EmptyBmi):
+class HBV(Bmi):
     """HBV model wrapped in a BMI interface."""
 
     def initialize(self, config_file: str) -> None:
