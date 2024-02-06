@@ -81,8 +81,8 @@ class HBV(EmptyBmi):
         ----------
         par: array_like
             array/list containing 8 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks (floats)
-        df: pandas.core.frame.DataFrame
-            DataFrame containing 'P', 'Q', 'EP' columns as forcing for the model.
+        df_in: pandas.core.frame.DataFrame
+            DataFrame containing 'P', 'Q', 'EP' columns as forcing for the model. - only for plotting
         s_in: array_like
             array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
         storage_terms: list of arrays
