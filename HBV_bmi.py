@@ -55,7 +55,8 @@ class HBV(Bmi):
         self.Qf_dt     = 0       # fast flow
         self.Q_tot_dt  = 0       # total flow
         self.Q_m       = 0       # Final model prediction
-    
+
+
     def set_pars(self, par) -> None:
         # function to overwrite initial configureation of parameters, saves having to change the config file
         self.I_max  = par[0]                # maximum interception
@@ -365,6 +366,111 @@ class HBV(Bmi):
             return int(T_lag)
         else:
             return T_lag
+
+    def get_time_step(self) -> float:
+        if len(self.Ts) > 1:
+            return self.Ts[1] - self.Ts[0]
+        else:
+            return None
+    def get_time_units(self) -> str:
+        return "numpy.datetime64: YYYY-MM-DDTHH-MM-SS.MS"
+
+    # TODO implement
+    def get_value_at_indices(
+        self, name: str, dest: np.ndarray, inds: np.ndarray
+    ) -> np.ndarray:
+        raise NotImplementedError()
+
+    # TODO implement
+    def set_value_at_indices(
+        self, name: str, inds: np.ndarray, src: np.ndarray
+    ) -> None:
+        raise NotImplementedError()
+
+    def get_input_var_names(self) -> Tuple[str]:
+        raise NotImplementedError()
+    def get_input_item_count(self) -> int:
+        raise NotImplementedError()
+
+    def get_output_item_count(self) -> int:
+        raise NotImplementedError()
+
+    def finalize(self) -> None:
+        raise NotImplementedError()
+
+    def get_value_ptr(self, name: str) -> np.ndarray:
+        raise NotImplementedError()
+    def get_var_itemsize(self, name: str) -> int:
+        raise NotImplementedError()
+    def get_var_location(self, name: str) -> str:
+        raise NotImplementedError()
+
+    def get_var_nbytes(self, name: str) -> int:
+        raise NotImplementedError()
+
+    def get_var_type(self, name: str) -> str:
+        raise NotImplementedError()
+
+    def update_until(self, time: float) -> None:
+        raise NotImplementedError()
+
+    # not needed as conceptual?
+    # Grid information
+    def get_var_grid(self, name: str) -> int:
+        raise NotImplementedError()
+    def get_grid_rank(self, grid: int) -> int:
+        raise NotImplementedError()
+
+    def get_grid_size(self, grid: int) -> int:
+        raise NotImplementedError()
+
+    def get_grid_type(self, grid: int) -> str:
+        raise NotImplementedError()
+
+    # Uniform rectilinear
+    def get_grid_shape(self, grid: int, shape: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_spacing(self, grid: int, spacing: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_origin(self, grid: int, origin: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    # Non-uniform rectilinear, curvilinear
+    def get_grid_x(self, grid: int, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_y(self, grid: int, y: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_z(self, grid: int, z: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_node_count(self, grid: int) -> int:
+        raise NotImplementedError()
+
+    def get_grid_edge_count(self, grid: int) -> int:
+        raise NotImplementedError()
+
+    def get_grid_face_count(self, grid: int) -> int:
+        raise NotImplementedError()
+
+    def get_grid_edge_nodes(self, grid: int, edge_nodes: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_face_edges(self, grid: int, face_edges: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_face_nodes(self, grid: int, face_nodes: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    def get_grid_nodes_per_face(
+        self, grid: int, nodes_per_face: np.ndarray
+    ) -> np.ndarray:
+        raise NotImplementedError()
+
+
 
 def get_unixtime(Ts: np.datetime64) -> int:
     """Get unix timestamp (seconds since 1 january 1970) from a np.datetime64."""
