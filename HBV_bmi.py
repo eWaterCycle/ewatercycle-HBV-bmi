@@ -24,7 +24,7 @@ class HBV(EmptyBmi):
         Ts = df_in.index.to_numpy()
         P = forcing[:, 3]
         Q = forcing[:, 4]
-        EP = forcing[:, 4]
+        EP = forcing[:, 5]
 
         # store forcing & obs
         self.Ts = Ts # in numpy.datetime64
@@ -354,7 +354,7 @@ class HBV(EmptyBmi):
         """Return current time in seconds since 1 january 1970."""
         # we get the timestep from the data, but the stopping condition requires it to go one beyond. 
         if self.current_timestep < len(self.Ts):
-            return get_unixtime(self.TS[self.current_timestep]) # type: ignore
+            return get_unixtime(self.Ts[self.current_timestep]) # type: ignore
         else:
             return get_unixtime(self.Ts[-1] + np.timedelta64(1, 'D'))
     # return get_unixtime(self.df.loc[pd.Timestamp(model.get_current_time(), unit="s")]) # type: ignore
