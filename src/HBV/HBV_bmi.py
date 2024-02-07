@@ -236,11 +236,13 @@ class HBV(Bmi):
         elif(var_name == "Q_m"):
             dest[:] = np.array(self.Q_m)
             return dest
-        elif(var_name == "memory_vector_lag"):
-            return self.memory_vector_lag 
+
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
+## TODO implement return memory lag, storage terms and parameters
+# elif(var_name == "memory_vector_lag"):
+#     return self.memory_vector_lag
 #     elif (var_name == "storage_terms"):
 #     dest[:] = np.array([self.Si, self.Su, self.Sf, self.Ss])
 #     return dest
