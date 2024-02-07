@@ -1,0 +1,28 @@
+FROM ubuntu:bionic
+MAINTAINER David Haasnoot daafips@gmail.com
+
+# added to ensure we have pip
+ARG APP_IMAGE=python:3.8
+WORKDIR /app
+ADD . /app
+RUN set -xe  \
+    && apt-get -yqq update  \
+    && apt-get -yqq install python3-pip  \
+    && pip3 install --upgrade pip\
+    && apt-get install -y git\
+    && pip install setuptools
+
+
+# Install grpc4bmi
+RUN pip install git+https://github.com/eWaterCycle/grpc4bmi.git#egg=grpc4bmi
+
+# Install here your BMI model:
+RUN git clone https://github.com/Daafip/HBV-bmi-numpy /opt/mymodeldir
+
+# Run bmi server
+ENTRYPOINT ["run-bmi-server", "--name", "HBV.HBV_bmi.HBV",--path,"/opt/mymodeldir"]
+
+# Expose the magic grpc4bmi port
+EXPOSE 55555
+
+# && apt-get -yqq install python3.8\
