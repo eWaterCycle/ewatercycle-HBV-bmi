@@ -1,5 +1,6 @@
 from bmipy import Bmi
 from typing import Any, Tuple
+from HBV import utils
 import numpy as np
 import pandas as pd
 import json
@@ -7,36 +8,23 @@ import json
 
 class HBV(Bmi):
     """HBV model wrapped in a BMI interface."""
-
+    
     def initialize(self, config_file: str) -> None:
         # open json files containing data
-        f = open(config_file)
-        self.config: dict[str, Any] = json.load(f)
-        f.close()
-
-        # load forcing
-        forcing = np.loadtxt(self.config['forcing_file'], delimiter="	")
-        names = ["year", "month", "day", "P", "Q", "EP"]
-        df_in = pd.DataFrame(forcing, columns=names)
-        df_in.index = df_in.apply(lambda x: pd.Timestamp(f'{int(x.year)}-{int(x.month)}-{int(x.day)}'), axis=1)
-        df_in.drop(columns=["year", "month", "day"], inplace=True)
-
-        Ts = df_in.index.to_numpy()
-        P = forcing[:, 3]
-        Q = forcing[:, 4]
-        EP = forcing[:, 5]
+        self.config: dict[str, Any] = utils.read_config(config_file)
 
         # store forcing & obs
-        self.Ts = Ts # in numpy.datetime64
-        self.P = P
-        self.Q = Q
-        self.EP = EP
-        self.df_in = df_in
+        self.P = utils.load_var(self.config["precipitation_file"], "pr")
+        self.EP = utils.load_var(self.config["potential_evaporation_file"], "pev")
+
 
         # set up times
-        self.end_timestep = len(self.P)+1
+        self.Ts = self.P['time']
+        self.end_timestep = len(self.Ts.values) + 1
         self.current_timestep = 0
-        self.dt = self.config['timestep']
+        self.dt = (
+            self.Ts.values[1] - self.Ts.values[0]
+        ) / np.timedelta64(1, "s")
 
         # define parameters 
         self.set_pars(np.array(self.config['parameters'].split(','),dtype=np.float64))
@@ -48,6 +36,7 @@ class HBV(Bmi):
         # define storage & flow terms, flows 0, storages initialised 
         s_in = np.array(self.config['initial_storage'].split(','),dtype=np.float64)
         self.set_storage(s_in)
+
         # set other flows for initial step 
         self.Ei_dt     = 0       # interception evaporation
         self.Ea_dt     = 0       # actual evaportation
@@ -58,7 +47,7 @@ class HBV(Bmi):
 
 
     def set_pars(self, par) -> None:
-        # function to overwrite initial configureation of parameters, saves having to change the config file
+        # function to overwrite initial configuration of parameters, saves having to change the config file
         self.I_max  = par[0]                # maximum interception
         self.Ce     = par[1]                # Ea = Su / (sumax * Ce) * Ep
         self.Su_max = par[2]                # ''
@@ -82,8 +71,8 @@ class HBV(Bmi):
         ----------
         par: array_like
             array/list containing 8 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks (floats)
-        df_in: pandas.core.frame.DataFrame
-            DataFrame containing 'P', 'Q', 'EP' columns as forcing for the model. - only for plotting
+        # df_in: pandas.core.frame.DataFrame
+        #     DataFrame containing 'P', 'Q', 'EP' columns as forcing for the model. - only for plotting
         s_in: array_like
             array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
         storage_terms: list of arrays
@@ -98,8 +87,8 @@ class HBV(Bmi):
     
         """
         if self.current_timestep <= self.end_timestep:
-            self.P_dt  = self.P[self.current_timestep] * self.dt
-            self.Ep_dt = self.EP[self.current_timestep]  * self.dt
+            self.P_dt  = self.P.isel(time=self.current_timestep).to_numpy() * self.dt
+            self.Ep_dt = self.EP.isel(time=self.current_timestep).to_numpy()  * self.dt
         
             # Interception Reservoir
             if self.P_dt > 0:
@@ -192,6 +181,7 @@ class HBV(Bmi):
         return "HBV"
 
     def get_value(self, var_name: str, dest: np.ndarray) -> np.ndarray:
+        # verander naar lookup
         if(var_name == "Imax"):
             dest[:] = np.array(self.Imax)
             return dest
@@ -246,54 +236,42 @@ class HBV(Bmi):
         elif(var_name == "Q_m"):
             dest[:] = np.array(self.Q_m)
             return dest
-        elif(var_name == "storage_terms"):
-            dest[:] = np.array([self.Si, self.Su, self.Sf, self.Ss])
-            return dest
-        elif(var_name == "parameters"):
-            dest[:] = np.array([self.I_max, self.Ce, self.Su_max, self.beta, self.P_max, self.T_lag, self.Kf, self.Ks])
-            return dest
         elif(var_name == "memory_vector_lag"):
             return self.memory_vector_lag 
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
+#     elif (var_name == "storage_terms"):
+#     dest[:] = np.array([self.Si, self.Su, self.Sf, self.Ss])
+#     return dest
+#
+# elif (var_name == "parameters"):
+# dest[:] = np.array([self.I_max, self.Ce, self.Su_max, self.beta, self.P_max, self.T_lag, self.Kf, self.Ks])
+# return dest
+    dict_var_units = {
+        "Imax": "mm",
+        "Ce": "-",
+        "Sumax": "mm",
+        "Beta": "-",
+        "Pmax": "mm",
+        "Tlag": "d",
+        "Kf": "-",
+        "Ks": "-",
+        "Si": "mm",
+        "Su": "mm",
+        "Sf": "mm",
+        "Ss": "mm",
+        "Ei_dt": "mm/d",
+        "Ea_dt": "mm/d",
+        "Qs_dt": "mm/d",
+        "Qf_dt": "mm/d",
+        "Q_tot_dt": "mm/d",
+        "Q_m": "mm/d"}
+
     def get_var_units(self, var_name: str) -> str:
-        if(var_name == "Imax"):
-            return "mm"
-        elif(var_name == "Ce"):
-            return "-"
-        elif(var_name == "Sumax"):
-            return "mm"
-        elif(var_name == "Beta"):
-            return "-"
-        elif(var_name == "Pmax"):
-            return "mm"
-        elif(var_name == "Tlag"):
-            return "d"
-        elif(var_name == "Kf"):
-            return "-"
-        elif(var_name == "Ks"):
-            return "-"
-        elif(var_name == "Si"):
-            return "mm"
-        elif(var_name == "Su"):
-            return "mm"
-        elif(var_name == "Sf"):
-            return "mm"
-        elif(var_name == "Ss"):
-            return "mm"
-        elif(var_name == "Ei_dt"):
-            return "mm/d"
-        elif(var_name == "Ea_dt"):
-            return "mm/d"
-        elif(var_name == "Qs_dt"):
-            return "mm/d"
-        elif(var_name == "Qf_dt"):
-            return "mm/d"
-        elif(var_name == "Q_tot_dt"):
-            return "mm/d"
-        elif(var_name == "Q_m"):
-            return "mm/d"
+        # loop up table
+        if var_name in dict_var_units.keys():
+            return dict_var_units[var_name]
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
@@ -340,25 +318,21 @@ class HBV(Bmi):
             raise ValueError(f"Unknown variable {var_name}")
 
     def get_output_var_names(self) -> Tuple[str]:
-        return ("Imax","Ce","Sumax","Beta","Pmax","Tlag","Kf","Si","Su","Sf","Ss","Ei_dt","Ea_dt","Qs_dt","Qf_dt","Q_tot_dt","Q_m")
+        return dict_var_units.keys()
 
     # The BMI has to have some time-related functionality:
     def get_start_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return self.get_unixtime(self.Ts[0]) # type: ignore
+        return self.get_unixtime(self.Ts.isel(time=0).values[0]) # type: ignore
 
     def get_end_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return get_unixtime(self.Ts[-1]) # type: ignore
+        return get_unixtime(self.Ts.isel(time=0).values[-1]) # type: ignore
 
     def get_current_time(self) -> float:
         """Return current time in seconds since 1 january 1970."""
         # we get the timestep from the data, but the stopping condition requires it to go one beyond. 
-        if self.current_timestep < len(self.Ts):
-            return get_unixtime(self.Ts[self.current_timestep]) # type: ignore
-        else:
-            return get_unixtime(self.Ts[-1] + np.timedelta64(1, 'D'))
-    # return get_unixtime(self.df.loc[pd.Timestamp(model.get_current_time(), unit="s")]) # type: ignore
+        return get_unixtime(self.Ts.isel(time=self.current_timestep).values) # type: ignore
     
     def set_tlag(self, T_lag) -> int:
         "Ensures T_lag is an integer"
@@ -369,11 +343,12 @@ class HBV(Bmi):
 
     def get_time_step(self) -> float:
         if len(self.Ts) > 1:
-            return self.Ts[1] - self.Ts[0]
+            return self.Ts.values[1] - self.Ts.values[0]
         else:
             return None
+
     def get_time_units(self) -> str:
-        return "numpy.datetime64: YYYY-MM-DDTHH-MM-SS.MS"
+        return "seconds since 1970-01-01 00:00:00.0 +0000"
 
     # TODO implement
     def get_value_at_indices(
@@ -387,61 +362,71 @@ class HBV(Bmi):
     ) -> None:
         raise NotImplementedError()
 
+    def get_var_itemsize(self, name: str) -> int:
+        return np.array(0.0).nbytes
+
+    def get_var_nbytes(self, name: str) -> int:
+        return np.array(0.0).nbytes
+
+    def get_var_type(self, name: str) -> str:
+        return "float64"
+
+    # Grid information
+    def get_var_grid(self, name: str) -> int:
+        raise 0
+
+    def get_grid_rank(self, grid: int) -> int:
+        return 2
+
+    def get_grid_size(self, grid: int) -> int:
+        return 1
+
+    def get_grid_type(self, grid: int) -> str:
+        return "rectilinear"
+
+    # Uniform rectilinear
+    def get_grid_shape(self, grid: int, shape: np.ndarray) -> np.ndarray:
+        shape[:] = np.array([1, 1], dtype="int64")
+        return shape
+
+    def get_grid_origin(self, grid: int, origin: np.ndarray) -> np.ndarray:
+        origin[:] = np.array([0., 0.])
+        return origin
+
+    # Non-uniform rectilinear, curvilinear
+    def get_grid_x(self, grid: int, x: np.ndarray) -> np.ndarray:
+        x[:] = self.P["lon"].to_numpy()
+        return x
+
+    def get_grid_y(self, grid: int, y: np.ndarray) -> np.ndarray:
+        y[:] = self.precipitation["lat"].to_numpy()
+        return y
+
+    def finalize(self) -> None:
+        """"Nothing to wrapup"""
+        pass
+
+    ### not implemented
+
     def get_input_var_names(self) -> Tuple[str]:
         raise NotImplementedError()
+
     def get_input_item_count(self) -> int:
         raise NotImplementedError()
 
     def get_output_item_count(self) -> int:
         raise NotImplementedError()
 
-    def finalize(self) -> None:
-        raise NotImplementedError()
-
     def get_value_ptr(self, name: str) -> np.ndarray:
         raise NotImplementedError()
-    def get_var_itemsize(self, name: str) -> int:
-        raise NotImplementedError()
+
     def get_var_location(self, name: str) -> str:
-        raise NotImplementedError()
-
-    def get_var_nbytes(self, name: str) -> int:
-        raise NotImplementedError()
-
-    def get_var_type(self, name: str) -> str:
         raise NotImplementedError()
 
     def update_until(self, time: float) -> None:
         raise NotImplementedError()
 
-    # not needed as conceptual?
-    # Grid information
-    def get_var_grid(self, name: str) -> int:
-        raise NotImplementedError()
-    def get_grid_rank(self, grid: int) -> int:
-        raise NotImplementedError()
-
-    def get_grid_size(self, grid: int) -> int:
-        raise NotImplementedError()
-
-    def get_grid_type(self, grid: int) -> str:
-        raise NotImplementedError()
-
-    # Uniform rectilinear
-    def get_grid_shape(self, grid: int, shape: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
     def get_grid_spacing(self, grid: int, spacing: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
-    def get_grid_origin(self, grid: int, origin: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
-    # Non-uniform rectilinear, curvilinear
-    def get_grid_x(self, grid: int, x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
-    def get_grid_y(self, grid: int, y: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     def get_grid_z(self, grid: int, z: np.ndarray) -> np.ndarray:
