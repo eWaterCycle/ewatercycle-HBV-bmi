@@ -1,6 +1,6 @@
-# HBV-BMI-numpy
+# HBV-BMI
 
-Looks like https://github.com/Daafip/HBV-data-assimilation but uses numpy indexing rather than pandas.
+Looks like https://github.com/Daafip/HBV-data-assimilation but adjusted for eWaterCycle
 
 ## Overview of code: 
 
