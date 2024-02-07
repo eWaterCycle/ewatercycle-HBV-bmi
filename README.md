@@ -1,6 +1,9 @@
 # HBV-BMI
 
-Looks like https://github.com/Daafip/HBV-data-assimilation but adjusted for eWaterCycle
+Looks like https://github.com/Daafip/HBV-data-assimilation but adjusted for eWaterCycle.
+Actual eWatercycle model can be found here https://github.com/Daafip/ewatercycle-hbv
+Contains model code for HBV without snow component. 
+
 
 ## Overview of code: 
 
