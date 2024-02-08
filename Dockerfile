@@ -50,7 +50,10 @@ RUN pip install /opt/HBV/
 
 RUN pip install grpc4bmi==0.4.0
 
+
+
 # Default command should be to run GRPC4BMI server
 # Don't override micromamba's entrypoint as that activates conda!
 # CMD run-bmi-server --name "HBV.HBV_bmi.HBV" --port 55555 --debug
-ENTRYPOINT ["run-bmi-server", "--name", "HBV.HBV_bmi.HBV",--path,"/opt/mymodeldir"]
+#ENTRYPOINT ["run-bmi-server", "--name", "HBV.HBV_bmi.HBV",--path,"/opt/mymodeldir"]
+CMD run-bmi-server --name "HBV.HBV_bmi.HBV" --port 55555 --debug

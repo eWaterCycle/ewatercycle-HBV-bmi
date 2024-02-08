@@ -15,8 +15,8 @@ class HBV(Bmi):
 
         # store forcing & obs
         self.P = utils.load_var(self.config["precipitation_file"], "pr")
-        self.EP = utils.load_var(self.config["potential_evaporation_file"], "pev")
-
+        # self.EP = utils.load_var(self.config["potential_evaporation_file"], "pev")
+        self.EP = []
 
         # set up times
         self.Ts = self.P['time']
