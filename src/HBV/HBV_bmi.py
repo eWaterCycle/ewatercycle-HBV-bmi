@@ -29,12 +29,14 @@ class HBV(Bmi):
         self.EP = utils.load_var(self.config["potential_evaporation_file"], "pev")
 
         # set up times
-        self.Ts = self.P['time']
+        self.Ts = self.P['time'].astype("datetime64[s]")
         self.end_timestep = len(self.Ts.values) + 1
         self.current_timestep = 0
+
+        # time step size in seconds (to be able to do unit conversions) - change here to days
         self.dt = (
             self.Ts.values[1] - self.Ts.values[0]
-        ) / np.timedelta64(1, "s")
+        ) / np.timedelta64(1, "s") / 24 /3600
 
         # define parameters 
         self.set_pars(np.array(self.config['parameters'].split(','),dtype=np.float64))
@@ -86,7 +88,7 @@ class HBV(Bmi):
                              "Pmax": self.P_max,
                              "Tlag":self.T_lag,
                              "Kf": self.Kf,
-                             "Ks": self.ks,
+                             "Ks": self.Ks,
                              "Si": self.Si,
                              "Su":self.Su,
                              "Sf": self.Sf,
