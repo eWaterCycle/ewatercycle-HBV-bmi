@@ -258,7 +258,7 @@ class HBV(Bmi):
 
     def set_value(self, var_name: str, src: np.ndarray) -> None:
         if var_name == "Tlag":
-            self.set_tlag(src[0])
+            self.T_lag = self.set_tlag(src[0])
         elif var_name in self.dict_var_obj:
             self.dict_var_obj[var_name] = src[0]
         ### add way to update memory vectory ?
@@ -273,7 +273,7 @@ class HBV(Bmi):
     # The BMI has to have some time-related functionality:
     def get_start_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return self.get_unixtime(self.Ts.isel(time=0).values) # type: ignore
+        return get_unixtime(self.Ts.isel(time=0).values) # type: ignore
 
     def get_end_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
@@ -287,9 +287,9 @@ class HBV(Bmi):
     def set_tlag(self, T_lag) -> int:
         """Ensures T_lag is an integer"""
         if type(T_lag) != int:
-            self.T_lag = (T_lag)
+            return int(T_lag)
         else:
-            self.T_lag = (T_lag)
+            return T_lag
 
     def get_time_step(self) -> float:
         if len(self.Ts) > 1:
