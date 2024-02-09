@@ -77,8 +77,9 @@ class HBV(Bmi):
                                 "Q_m": "mm/d"}
         # stores corresponding objects for variables
 
+    def updating_dict_var_obj(self) -> None:
         self.dict_var_obj = {
-                             "Imax": self.Imax,
+                             "Imax": self.I_max,
                              "Ce": self.Ce,
                              "Sumax": self.Su_max,
                              "Beta": self.beta,
@@ -97,6 +98,7 @@ class HBV(Bmi):
                              "Q_tot_dt": self.Q_tot_dt,
                              "Q_m":self.Q_m,
                              }
+
     def set_pars(self, par) -> None:
         # function to overwrite initial configuration of parameters, saves having to change the config file
         self.I_max  = par[0]                # maximum interception
@@ -233,6 +235,7 @@ class HBV(Bmi):
 
     def get_value(self, var_name: str, dest: np.ndarray) -> np.ndarray:
         # verander naar lookup
+        self.updating_dict_var_obj()
         if var_name in self.dict_var_obj:
             dest[:] = np.array(self.dict_var_obj[var_name])
             return dest
@@ -257,6 +260,7 @@ class HBV(Bmi):
             raise ValueError(f"Unknown variable {var_name}")
 
     def set_value(self, var_name: str, src: np.ndarray) -> None:
+        self.updating_dict_var_obj()
         if var_name == "Tlag":
             self.T_lag = self.set_tlag(src[0])
         elif var_name in self.dict_var_obj:
