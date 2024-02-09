@@ -273,11 +273,11 @@ class HBV(Bmi):
     # The BMI has to have some time-related functionality:
     def get_start_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return self.get_unixtime(self.Ts.isel(time=0).values[0]) # type: ignore
+        return self.get_unixtime(self.Ts.isel(time=0).values) # type: ignore
 
     def get_end_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return get_unixtime(self.Ts.isel(time=0).values[-1]) # type: ignore
+        return get_unixtime(self.Ts.isel(time=-1).values) # type: ignore
 
     def get_current_time(self) -> float:
         """Return current time in seconds since 1 january 1970."""
