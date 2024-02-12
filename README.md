@@ -1,5 +1,7 @@
 # HBV-BMI
 
+[![PyPI](https://img.shields.io/pypi/v/HBV)](https://pypi.org/project/HBV/)
+
 Basic Model Interface (BMI) HBV model compatible with [eWaterCycle](https://github.com/eWaterCycle)
 
  HBV (Hydrologiska Byråns Vattenbalansavdelning) is a conceptual hydrological model. For more information on it's history, see this [paper](https://hess.copernicus.org/articles/26/1371/2022/).
