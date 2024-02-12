@@ -2,6 +2,7 @@ from bmipy import Bmi
 from typing import Any, Tuple
 from HBV import utils
 import numpy as np
+import warnings
 import pandas as pd
 import json
 
@@ -244,7 +245,7 @@ class HBV(Bmi):
         if var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 dest[:] = np.array(None)
-                raise UserWarning("No action undertaken. Please use `set_value(f'memory_vector{n}',src)` where n is the index.")
+                warnings.warn("No action undertaken. Please use `set_value(f'memory_vector{n}',src)` where n is the index.", SyntaxWarning)
             else:
                 mem_index = int(var_name[len("memory_vector"):])
                 if mem_index < len(self.memory_vector_lag):
@@ -273,15 +274,25 @@ class HBV(Bmi):
         # 1. tlag which must be int and rests memory vector
         # 2. values in the memory vector must be set manually to be BMI compliant.
         if var_name == "Tlag":
+            old_T_lag = self.T_lag
+            old_memory_vector = self.memory_vector_lag
             self.T_lag = self.set_tlag(src[0])
-            raise UserWarning(f'Reseting the value of Lag also resets memory vector to np.zeros(T_lag) - ensure these are updated accordingly')
-            # TODO: make sure this assumption holds rather than raising an error
+            # when we change Tlag, we shift over the size of the memory vector
             # assume that if we reset the Tlag value, we also always reset the memory vector
-            self.memory_vector_lag = self.set_empty_memory_vector_lag()
+            new_memory_vector = self.set_empty_memory_vector_lag()
+            # if the new vector is longer, we simply add the new values at the end
+            if old_T_lag < self.T_lag:
+                new_memory_vector[:old_T_lag] = old_memory_vector
+            # if the new vector is shorter, we sum the old extra values to the last value: as not to `lose` water
+            elif old_T_lag > self.T_lag:
+                new_memory_vector = old_memory_vector[:self.T_lag]
+                new_memory_vector[-1] += sum(old_memory_vector[self.T_lag:])
+            # set new vector
+            self.memory_vector_lag = new_memory_vector
 
         elif var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
-                raise UserWarning("No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index.")
+                warnings.warn("No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index.",SyntaxWarning)
                 pass
             else:
                 mem_index = int(var_name[len("memory_vector"):])
