@@ -36,14 +36,13 @@ class HBV(Bmi):
         # time step size in seconds (to be able to do unit conversions) - change here to days
         self.dt = (
             self.Ts.values[1] - self.Ts.values[0]
-        ) / np.timedelta64(1, "s") / 24 /3600
+        ) / np.timedelta64(1, "s") / 24 / 3600
 
         # define parameters 
-        self.set_pars(np.array(self.config['parameters'].split(','),dtype=np.float64))
+        self.set_pars(np.array(self.config['parameters'].split(','), dtype=np.float64))
 
         # add memory vector for tlag & run weights function
-        self.memory_vector_lag = np.zeros(self.T_lag)
-        self.weights = self.Weigfun()
+        self.memory_vector_lag = self.set_empty_memory_vector_lag()
 
         # define storage & flow terms, flows 0, storages initialised 
         s_in = np.array(self.config['initial_storage'].split(','),dtype=np.float64)
@@ -232,28 +231,35 @@ class HBV(Bmi):
             self.memory_vector_lag = np.roll(self.memory_vector_lag,-1)  # This cycles the array [1,2,3,4] becomes [2,3,4,1]
             self.memory_vector_lag[-1] = 0                              # the next last entry becomes 0 (outside of convolution lag)
 
+    def set_empty_memory_vector_lag(self):
+        self.weights = self.Weigfun() # generates weights using a weibull weight function
+        return np.zeros(self.T_lag)
+
     def get_component_name(self) -> str:
         return "HBV"
 
     def get_value(self, var_name: str, dest: np.ndarray) -> np.ndarray:
         # verander naar lookup
         self.updating_dict_var_obj()
-        if var_name in self.dict_var_obj:
+        if var_name[:len("memory_vector")] == "memory_vector":
+            if var_name == "memory_vector":
+                dest[:] = np.array(None)
+                raise UserWarning("No action undertaken. Please use `set_value(f'memory_vector{n}',src)` where n is the index.")
+            else:
+                mem_index = int(var_name[len("memory_vector"):])
+                if mem_index < len(self.memory_vector_lag):
+                    dest[:] = self.memory_vector_lag[mem_index]
+                else:
+                    raise IndexError(f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
+
+            return dest
+
+        elif var_name in self.dict_var_obj:
             dest[:] = np.array(self.dict_var_obj[var_name])
             return dest
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
-## TODO implement return memory lag, storage terms and parameters
-# elif(var_name == "memory_vector_lag"):
-#     return self.memory_vector_lag
-#     elif (var_name == "storage_terms"):
-#     dest[:] = np.array([self.Si, self.Su, self.Sf, self.Ss])
-#     return dest
-#
-# elif (var_name == "parameters"):
-# dest[:] = np.array([self.I_max, self.Ce, self.Su_max, self.beta, self.P_max, self.T_lag, self.Kf, self.Ks])
-# return dest
     def get_var_units(self, var_name: str) -> str:
         # look up table
         if var_name in self.dict_var_units:
@@ -263,13 +269,30 @@ class HBV(Bmi):
 
     def set_value(self, var_name: str, src: np.ndarray) -> None:
         self.updating_dict_var_obj()
+        # handle two special case:
+        # 1. tlag which must be int and rests memory vector
+        # 2. values in the memory vector must be set manually to be BMI compliant.
         if var_name == "Tlag":
             self.T_lag = self.set_tlag(src[0])
+            raise UserWarning(f'Reseting the value of Lag also resets memory vector to np.zeros(T_lag) - ensure these are updated accordingly')
+            # TODO: make sure this assumption holds rather than raising an error
+            # assume that if we reset the Tlag value, we also always reset the memory vector
+            self.memory_vector_lag = self.set_empty_memory_vector_lag()
+
+        elif var_name[:len("memory_vector")] == "memory_vector":
+            if var_name == "memory_vector":
+                raise UserWarning("No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index.")
+                pass
+            else:
+                mem_index = int(var_name[len("memory_vector"):])
+                if mem_index < len(self.memory_vector_lag):
+                    self.memory_vector_lag[mem_index] = src[0]
+                else:
+                    raise IndexError(f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
+
         elif var_name in self.dict_var_obj:
             self.dict_var_obj[var_name] = src[0]
-        ### add way to update memory vectory ?
-        # elif(var_name == "memory_vector_lag"):
-        #     self.memory_vector_lag = src
+
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
@@ -299,7 +322,7 @@ class HBV(Bmi):
 
     def get_time_step(self) -> float:
         if len(self.Ts) > 1:
-            return self.Ts.values[1] - self.Ts.values[0]
+            return (self.Ts.values[1] - self.Ts.values[0]) / np.timedelta64(1, "s")
         else:
             return None
 
