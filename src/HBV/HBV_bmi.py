@@ -3,8 +3,6 @@ from typing import Any, Tuple
 from HBV import utils
 import numpy as np
 import warnings
-import pandas as pd
-import json
 
 
 class HBV(Bmi):
@@ -31,6 +29,11 @@ class HBV(Bmi):
 
         # set up times
         self.Ts = self.P['time'].astype("datetime64[s]")
+        """:31: UserWarning: Converting non-nanosecond precision datetime values to nanosecond precision. 
+        This behavior can eventually be relaxed in xarray, as it is an artifact from pandas which is now beginning 
+        to support non-nanosecond precision values. 
+        This warning is caused by passing non-nanosecond np.datetime64 or np.timedelta64 values to the DataArray or 
+        Variable constructor; it can be silenced by converting the values to nanosecond precision ahead of time."""
         self.end_timestep = len(self.Ts.values) + 1
         self.current_timestep = 0
 
@@ -80,29 +83,35 @@ class HBV(Bmi):
         # stores corresponding objects for variables
 
     def updating_dict_var_obj(self) -> None:
+        """Function which makes getting the objects more readable-  but adds more boiler plate.."""
         self.dict_var_obj = {
                              "Imax": self.I_max,
                              "Ce": self.Ce,
                              "Sumax": self.Su_max,
                              "Beta": self.beta,
                              "Pmax": self.P_max,
-                             "Tlag":self.T_lag,
+                             "Tlag": self.T_lag,
                              "Kf": self.Kf,
                              "Ks": self.Ks,
                              "Si": self.Si,
-                             "Su":self.Su,
+                             "Su": self.Su,
                              "Sf": self.Sf,
-                             "Ss":self.Ss,
+                             "Ss": self.Ss,
                              "Ei_dt": self.Ei_dt,
                              "Ea_dt": self.Ei_dt,
                              "Qs_dt": self.Qs_dt,
                              "Qf_dt": self.Qf_dt,
                              "Q_tot_dt": self.Q_tot_dt,
-                             "Q_m":self.Q_m,
+                             "Q_m": self.Q_m,
                              }
+    def updating_obj_from_dict_var(self) -> None:
+        """Function which inverts the dictionary above & sets objects correctly"""
+        param_names = ["Imax","Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
+        stor_names = ["Si", "Su", "Sf", "Ss"]
+        self.set_pars([self.dict_var_obj[par] for par in param_names])
+        self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
 
     def set_pars(self, par) -> None:
-        # function to overwrite initial configuration of parameters, saves having to change the config file
         self.I_max  = par[0]                # maximum interception
         self.Ce     = par[1]                # Ea = Su / (sumax * Ce) * Ep
         self.Su_max = par[2]                # ''
@@ -120,26 +129,12 @@ class HBV(Bmi):
 
 
     def update(self) -> None:
-        """
+        """Old documentation:
         Function to run the update part of one timestep of the HBV model
-        parameters
-        ----------
-        par: array_like
-            array/list containing 8 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks (floats)
-        # df_in: pandas.core.frame.DataFrame
-        #     DataFrame containing 'P', 'Q', 'EP' columns as forcing for the model. - only for plotting
-        s_in: array_like
-            array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
-        storage_terms: list of arrays
-            list of arrays which store: Si, Su, Sf, Ss, Ei_dt, Ea_dt, Qs_dt_lst, Qf_dt_lst, Q_tot_dt
-        step_n: int
-            nth step which formard model takes: used to determin which Precipitaion & evaporation to use
-    
-        Returns
-        ----------
-        Obj, df: float, pandas.core.frame.DataFrame
-            return of the objective function and corresponding dataframe
-    
+        par: array/list containing 8 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks (floats)
+        s_in: array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
+        storage_terms: list of arrays which store: Si, Su, Sf, Ss, Ei_dt, Ea_dt, Qs_dt_lst, Qf_dt_lst, Q_tot_dt
+        step_n - nth step which formard model takes: used to determin which Precipitaion & evaporation to use
         """
         if self.current_timestep <= self.end_timestep:
             self.P_dt  = self.P.isel(time=self.current_timestep).to_numpy() * self.dt
@@ -154,8 +149,8 @@ class HBV(Bmi):
                 self.Ei_dt = 0                          # if rainfall, evaporation = 0 as too moist
             else:
                 # Evaporation only when there is no rainfall
-                self.Pe_dt    = 0                      # nothing flows in so must be 0
-                self.Ei_dt    = min(self.Ep_dt, self.Si / self.dt) # evaporation limited by storage
+                self.Pe_dt = 0                      # nothing flows in so must be 0
+                self.Ei_dt = min(self.Ep_dt, self.Si / self.dt) # evaporation limited by storage
                 self.Si    = self.Si - self.Ei_dt
 
             # split flow into Unsaturated Reservoir and Fast flow
@@ -189,7 +184,7 @@ class HBV(Bmi):
 
             # total = fast + slow
             self.Q_tot_dt = self.Qs_dt + self.Qf_dt
-            # add time lag to the process
+            # add time lag to the process - Qm is set here
             self.add_time_lag()
             # self.Q_m = self.Q_tot_dt
 
@@ -240,12 +235,14 @@ class HBV(Bmi):
         return "HBV"
 
     def get_value(self, var_name: str, dest: np.ndarray) -> np.ndarray:
-        # verander naar lookup
+        # first update the dictionary to match the current values of object
         self.updating_dict_var_obj()
+        # handle the memory vector
         if var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 dest[:] = np.array(None)
-                warnings.warn("No action undertaken. Please use `set_value(f'memory_vector{n}',src)` where n is the index.", SyntaxWarning)
+                message = "No action undertaken. Please use `set_value(f'memory_vector{n}',src)` where n is the index."
+                warnings.warn(message=message, type=SyntaxWarning)
             else:
                 mem_index = int(var_name[len("memory_vector"):])
                 if mem_index < len(self.memory_vector_lag):
@@ -254,7 +251,7 @@ class HBV(Bmi):
                     raise IndexError(f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
 
             return dest
-
+        # otherwise return the variable from the dictionary
         elif var_name in self.dict_var_obj:
             dest[:] = np.array(self.dict_var_obj[var_name])
             return dest
@@ -269,10 +266,10 @@ class HBV(Bmi):
             raise ValueError(f"Unknown variable {var_name}")
 
     def set_value(self, var_name: str, src: np.ndarray) -> None:
+        # update the dict which maps variables to their current value
         self.updating_dict_var_obj()
         # handle two special case:
         # 1. tlag which must be int and rests memory vector
-        # 2. values in the memory vector must be set manually to be BMI compliant.
         if var_name == "Tlag":
             old_T_lag = self.T_lag
             old_memory_vector = self.memory_vector_lag
@@ -290,9 +287,11 @@ class HBV(Bmi):
             # set new vector
             self.memory_vector_lag = new_memory_vector
 
+        # 2. values in the memory vector must be set manually to work with DA
         elif var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
-                warnings.warn("No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index.",SyntaxWarning)
+                message = "No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index."
+                warnings.warn(message=message, type=SyntaxWarning)
                 pass
             else:
                 mem_index = int(var_name[len("memory_vector"):])
@@ -301,14 +300,19 @@ class HBV(Bmi):
                 else:
                     raise IndexError(f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
 
+        # all other values can be set here
         elif var_name in self.dict_var_obj:
             self.dict_var_obj[var_name] = src[0]
+            self.updating_obj_from_dict_var()
 
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
+    # this is a bad way, but oh well
+    # first we set the new value in the dictionary
+    # this doesn't update the obj...
     def get_output_var_names(self) -> Tuple[str]:
-        return self.dict_var_units.keys()
+        return tuple([str(key) for key in self.dict_var_units.keys()])
 
     # The BMI has to have some time-related functionality:
     def get_start_time(self) -> float:
@@ -324,32 +328,29 @@ class HBV(Bmi):
         # we get the timestep from the data, but the stopping condition requires it to go one beyond. 
         return get_unixtime(self.Ts.isel(time=self.current_timestep).values) # type: ignore
 
-    def set_tlag(self, T_lag) -> int:
-        """Ensures T_lag is an integer"""
-        if type(T_lag) != int:
-            return int(T_lag)
-        else:
-            return T_lag
+    def set_tlag(self, T_lag_in) -> int:
+        """Ensures T_lag is an integer of at minimum 1"""
+        T_lag = max(1,int(round(T_lag_in,0)))
+        return T_lag
 
     def get_time_step(self) -> float:
         if len(self.Ts) > 1:
-            return (self.Ts.values[1] - self.Ts.values[0]) / np.timedelta64(1, "s")
+            return float((self.Ts.values[1] - self.Ts.values[0]) / np.timedelta64(1, "s"))
         else:
-            return None
+            message = "No time series defined"
+            warnings.warn(message=message, type=ImportWarning)
+            return 0.0
 
     def get_time_units(self) -> str:
         return "seconds since 1970-01-01 00:00:00.0 +0000"
 
-    # TODO implement
+    # TODO implement setting different timestep?
     def get_value_at_indices(
-        self, name: str, dest: np.ndarray, inds: np.ndarray
-    ) -> np.ndarray:
+        self, name: str, dest: np.ndarray, inds: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     # TODO implement
-    def set_value_at_indices(
-        self, name: str, inds: np.ndarray, src: np.ndarray
-    ) -> None:
+    def set_value_at_indices(self, name: str, inds: np.ndarray, src: np.ndarray) -> None:
         raise NotImplementedError()
 
     def get_var_itemsize(self, name: str) -> int:
@@ -389,14 +390,14 @@ class HBV(Bmi):
         return x
 
     def get_grid_y(self, grid: int, y: np.ndarray) -> np.ndarray:
-        y[:] = self.precipitation["lat"].to_numpy()
+        y[:] = self.P["lat"].to_numpy()
         return y
 
     def finalize(self) -> None:
         """"Nothing to wrapup"""
         pass
 
-    ### not implemented
+    # not implemented & not planning to
 
     def get_input_var_names(self) -> Tuple[str]:
         raise NotImplementedError()
@@ -441,8 +442,7 @@ class HBV(Bmi):
         raise NotImplementedError()
 
     def get_grid_nodes_per_face(
-        self, grid: int, nodes_per_face: np.ndarray
-    ) -> np.ndarray:
+        self, grid: int, nodes_per_face: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
 
