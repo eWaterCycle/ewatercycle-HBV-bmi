@@ -32,15 +32,17 @@ model = HBV()
 Be aware of the non-intuitive [BMI](https://github.com/eWaterCycle/grpc4bmi) implementation as this package is designed to run in a [docker](https://github.com/Daafip/HBV-bmi/pkgs/container/hbv-bmi-grpc4bmi) container. 
 
 
-### Changelog
+## Changelog
 
-#### v1.0.0 
+### v1.0.0 
 - working basic version after various [testing versions](https://test.pypi.org/project/HBV/)
 #### v1.0.1 - v1.0.3 
 - various bug fixes etc. (last time using live as a dev branch -> bad practice)
-#### v1.1.0 
+### v1.1.0 
 - added support for updating memory vector on the fly for Data assimilation.
 #### V1.1.1
 - bug fix in `T_lag` value: can now only be set an integer larger than 1: otherwise makes no physical sense
 - bug fix where wrong types were given, warning messages cleaned up and code attempted to be made more readable
-
+### V1.2.0
+- pretty big issue with setting values fixed - won't affect most use but will cause issues for Data Assimilation
+- use opportunity to name all HBV packages/naming/images to 1.2.0 

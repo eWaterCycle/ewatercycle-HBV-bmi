@@ -83,6 +83,7 @@ class HBV(Bmi):
         # stores corresponding objects for variables
 
     def updating_dict_var_obj(self) -> None:
+        """Function which makes getting the objects more readable-  but adds more boiler plate.."""
         self.dict_var_obj = {
                              "Imax": self.I_max,
                              "Ce": self.Ce,
@@ -103,6 +104,12 @@ class HBV(Bmi):
                              "Q_tot_dt": self.Q_tot_dt,
                              "Q_m": self.Q_m,
                              }
+    def updating_obj_from_dict_var(self) -> None:
+        """Function which inverts the dictionary above & sets objects correctly"""
+        param_names = ["Imax","Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
+        stor_names = ["Si", "Su", "Sf", "Ss"]
+        self.set_pars([self.dict_var_obj[par] for par in param_names])
+        self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
 
     def set_pars(self, par) -> None:
         self.I_max  = par[0]                # maximum interception
@@ -228,8 +235,9 @@ class HBV(Bmi):
         return "HBV"
 
     def get_value(self, var_name: str, dest: np.ndarray) -> np.ndarray:
-        # verander naar lookup
+        # first update the dictionary to match the current values of object
         self.updating_dict_var_obj()
+        # handle the memory vector
         if var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 dest[:] = np.array(None)
@@ -243,7 +251,7 @@ class HBV(Bmi):
                     raise IndexError(f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
 
             return dest
-
+        # otherwise return the variable from the dictionary
         elif var_name in self.dict_var_obj:
             dest[:] = np.array(self.dict_var_obj[var_name])
             return dest
@@ -258,10 +266,10 @@ class HBV(Bmi):
             raise ValueError(f"Unknown variable {var_name}")
 
     def set_value(self, var_name: str, src: np.ndarray) -> None:
+        # update the dict which maps variables to their current value
         self.updating_dict_var_obj()
         # handle two special case:
         # 1. tlag which must be int and rests memory vector
-        # 2. values in the memory vector must be set manually to be BMI compliant.
         if var_name == "Tlag":
             old_T_lag = self.T_lag
             old_memory_vector = self.memory_vector_lag
@@ -279,6 +287,7 @@ class HBV(Bmi):
             # set new vector
             self.memory_vector_lag = new_memory_vector
 
+        # 2. values in the memory vector must be set manually to work with DA
         elif var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 message = "No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index."
@@ -291,12 +300,17 @@ class HBV(Bmi):
                 else:
                     raise IndexError(f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
 
+        # all other values can be set here
         elif var_name in self.dict_var_obj:
             self.dict_var_obj[var_name] = src[0]
+            self.updating_obj_from_dict_var()
 
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
+    # this is a bad way, but oh well
+    # first we set the new value in the dictionary
+    # this doesn't update the obj...
     def get_output_var_names(self) -> Tuple[str]:
         return tuple([str(key) for key in self.dict_var_units.keys()])
 
