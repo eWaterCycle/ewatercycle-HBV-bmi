@@ -29,6 +29,11 @@ class HBV(Bmi):
 
         # set up times
         self.Ts = self.P['time'].astype("datetime64[s]")
+        """:31: UserWarning: Converting non-nanosecond precision datetime values to nanosecond precision. 
+        This behavior can eventually be relaxed in xarray, as it is an artifact from pandas which is now beginning 
+        to support non-nanosecond precision values. 
+        This warning is caused by passing non-nanosecond np.datetime64 or np.timedelta64 values to the DataArray or 
+        Variable constructor; it can be silenced by converting the values to nanosecond precision ahead of time."""
         self.end_timestep = len(self.Ts.values) + 1
         self.current_timestep = 0
 
