@@ -6,7 +6,9 @@ Basic Model Interface (BMI) HBV model intended for use with [eWaterCycle](https:
 
 HBV (Hydrologiska Byråns Vattenbalansavdelning) is a conceptual hydrological model. For more information on its history, see this [paper](https://hess.copernicus.org/articles/26/1371/2022/).
 
-This current implementation is _without_ a snow reservoir. 
+This current implementation is _without_ a snow reservoir, as shown below.
+(_Image from the course ENVM1502 - river basin Hydrology (Markus Hrachowitz)._) 
+![model_layout.png](https://raw.githubusercontent.com/Daafip/HBV-bmi/main/model_layout.png)
 
 Actual eWatercycle model wrapper can be found on [GitHub](https://github.com/Daafip/ewatercycle-hbv)
 
