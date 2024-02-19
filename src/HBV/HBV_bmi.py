@@ -135,6 +135,12 @@ class HBV(Bmi):
         s_in: array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
         storage_terms: list of arrays which store: Si, Su, Sf, Ss, Ei_dt, Ea_dt, Qs_dt_lst, Qf_dt_lst, Q_tot_dt
         step_n - nth step which formard model takes: used to determin which Precipitaion & evaporation to use
+
+        ### change to more closely reflect HBV-96 https://doi-org.tudelft.idm.oclc.org/10.1016/S0022-1694(97)00041-3
+        ### e.g .https://wflow.readthedocs.io/en/latest/wflow_hbv.html
+        ### or better: https://zaul_ae.gitlab.io/lumod-docs/models/hbv/
+        ### based on https://amir.eng.uci.edu/publications/10_EduHBV_IJEE.pdf
+
         """
         if self.current_timestep <= self.end_timestep:
             self.P_dt  = self.P.isel(time=self.current_timestep).to_numpy() * self.dt
