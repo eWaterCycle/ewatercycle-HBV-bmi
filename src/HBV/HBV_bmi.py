@@ -58,7 +58,7 @@ class HBV(Bmi):
         self.Qs_dt     = 0       # slow flow
         self.Qf_dt     = 0       # fast flow
         self.Q_tot_dt  = 0       # total flow
-        self.Q_m       = 0       # Final model prediction
+        self.Q       = 0       # Final model prediction
 
         # stores the units for variables
         self.dict_var_units = {
@@ -79,7 +79,7 @@ class HBV(Bmi):
                                 "Qs_dt": "mm/d",
                                 "Qf_dt": "mm/d",
                                 "Q_tot_dt": "mm/d",
-                                "Q_m": "mm/d"}
+                                "Q": "mm/d"}
         # stores corresponding objects for variables
 
     def updating_dict_var_obj(self) -> None:
@@ -102,7 +102,7 @@ class HBV(Bmi):
                              "Qs_dt": self.Qs_dt,
                              "Qf_dt": self.Qf_dt,
                              "Q_tot_dt": self.Q_tot_dt,
-                             "Q_m": self.Q_m,
+                             "Q": self.Q,
                              }
     def updating_obj_from_dict_var(self) -> None:
         """Function which inverts the dictionary above & sets objects correctly"""
@@ -192,7 +192,7 @@ class HBV(Bmi):
             self.Q_tot_dt = self.Qs_dt + self.Qf_dt
             # add time lag to the process - Qm is set here
             self.add_time_lag()
-            # self.Q_m = self.Q_tot_dt
+            # self.Q = self.Q_tot_dt
 
             # Advance the model time by one step
             self.current_timestep += 1
@@ -227,7 +227,7 @@ class HBV(Bmi):
             self.memory_vector_lag += self.weights*self.Q_tot_dt
 
             # Extract the latest Qm
-            self.Q_m = self.memory_vector_lag[0]
+            self.Q = self.memory_vector_lag[0]
 
             # Make a forecast to the next time step
             self.memory_vector_lag = np.roll(self.memory_vector_lag,-1)  # This cycles the array [1,2,3,4] becomes [2,3,4,1]
