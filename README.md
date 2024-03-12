@@ -50,3 +50,5 @@ Be aware of the non-intuitive [BMI](https://github.com/eWaterCycle/grpc4bmi) imp
 - use opportunity to name all HBV packages/naming/images to 1.2.0 
 ### V1.3.0
 - Change `Q_m` to `Q` in order to better integrate data assimilation & just makes more sense. 
+## v1.3.1
+- Fix bug in time indexing
