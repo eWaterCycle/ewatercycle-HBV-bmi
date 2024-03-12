@@ -34,7 +34,7 @@ class HBV(Bmi):
         to support non-nanosecond precision values. 
         This warning is caused by passing non-nanosecond np.datetime64 or np.timedelta64 values to the DataArray or 
         Variable constructor; it can be silenced by converting the values to nanosecond precision ahead of time."""
-        self.end_timestep = len(self.Ts.values) + 1
+        self.end_timestep = len(self.Ts.values)
         self.current_timestep = 0
 
         # time step size in seconds (to be able to do unit conversions) - change here to days
@@ -129,22 +129,18 @@ class HBV(Bmi):
 
 
     def update(self) -> None:
-        """Old documentation:
-        Function to run the update part of one timestep of the HBV model
-        par: array/list containing 8 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks (floats)
-        s_in: array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
-        storage_terms: list of arrays which store: Si, Su, Sf, Ss, Ei_dt, Ea_dt, Qs_dt_lst, Qf_dt_lst, Q_tot_dt
-        step_n - nth step which formard model takes: used to determin which Precipitaion & evaporation to use
+        """ Updates model one timestep
 
-        ### change to more closely reflect HBV-96 https://doi-org.tudelft.idm.oclc.org/10.1016/S0022-1694(97)00041-3
-        ### e.g .https://wflow.readthedocs.io/en/latest/wflow_hbv.html
-        ### or better: https://zaul_ae.gitlab.io/lumod-docs/models/hbv/
-        ### based on https://amir.eng.uci.edu/publications/10_EduHBV_IJEE.pdf
-
+        Old documentation:
+            Function to run the update part of one timestep of the HBV model
+            par: array/list containing 8 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks (floats)
+            s_in: array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
+            storage_terms: list of arrays which store: Si, Su, Sf, Ss, Ei_dt, Ea_dt, Qs_dt_lst, Qf_dt_lst, Q_tot_dt
+            step_n - nth step which formard model takes: used to determin which Precipitaion & evaporation to use
         """
-        if self.current_timestep <= self.end_timestep:
+        if self.current_timestep < self.end_timestep:
             self.P_dt  = self.P.isel(time=self.current_timestep).to_numpy() * self.dt
-            self.Ep_dt = self.EP.isel(time=self.current_timestep).to_numpy()  * self.dt
+            self.Ep_dt = self.EP.isel(time=self.current_timestep).to_numpy() * self.dt
 
             # Interception Reservoir
             if self.P_dt > 0:
@@ -450,7 +446,6 @@ class HBV(Bmi):
     def get_grid_nodes_per_face(
         self, grid: int, nodes_per_face: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
-
 
 
 def get_unixtime(Ts: np.datetime64) -> int:
