@@ -5,6 +5,24 @@ import numpy as np
 import warnings
 
 
+DICT_VAR_UNITS = {"Imax":"mm",
+                    "Ce": "-",
+                    "Sumax": "mm",
+                    "Beta": "-",
+                    "Pmax": "mm",
+                    "Tlag": "d",
+                    "Kf": "-",
+                    "Ks": "-",
+                    "Si": "mm",
+                    "Su": "mm",
+                    "Sf": "mm",
+                    "Ss": "mm",
+                    "Ei_dt": "mm/d",
+                    "Ea_dt": "mm/d",
+                    "Qs_dt": "mm/d",
+                    "Qf_dt": "mm/d",
+                    "Q_tot_dt": "mm/d",
+                    "Q": "mm/d"}
 class HBV(Bmi):
     """HBV model wrapped in a BMI interface."""
 
@@ -29,11 +47,6 @@ class HBV(Bmi):
 
         # set up times
         self.Ts = self.P['time'].astype("datetime64[s]")
-        """:31: UserWarning: Converting non-nanosecond precision datetime values to nanosecond precision. 
-        This behavior can eventually be relaxed in xarray, as it is an artifact from pandas which is now beginning 
-        to support non-nanosecond precision values. 
-        This warning is caused by passing non-nanosecond np.datetime64 or np.timedelta64 values to the DataArray or 
-        Variable constructor; it can be silenced by converting the values to nanosecond precision ahead of time."""
         self.end_timestep = len(self.Ts.values)
         self.current_timestep = 0
 
@@ -60,56 +73,7 @@ class HBV(Bmi):
         self.Q_tot_dt  = 0       # total flow
         self.Q       = 0       # Final model prediction
 
-        # stores the units for variables
-        self.dict_var_units = {
-                                "Imax":"mm",
-                                "Ce": "-",
-                                "Sumax": "mm",
-                                "Beta": "-",
-                                "Pmax": "mm",
-                                "Tlag": "d",
-                                "Kf": "-",
-                                "Ks": "-",
-                                "Si": "mm",
-                                "Su": "mm",
-                                "Sf": "mm",
-                                "Ss": "mm",
-                                "Ei_dt": "mm/d",
-                                "Ea_dt": "mm/d",
-                                "Qs_dt": "mm/d",
-                                "Qf_dt": "mm/d",
-                                "Q_tot_dt": "mm/d",
-                                "Q": "mm/d"}
         # stores corresponding objects for variables
-
-    def updating_dict_var_obj(self) -> None:
-        """Function which makes getting the objects more readable-  but adds more boiler plate.."""
-        self.dict_var_obj = {
-                             "Imax": self.I_max,
-                             "Ce": self.Ce,
-                             "Sumax": self.Su_max,
-                             "Beta": self.beta,
-                             "Pmax": self.P_max,
-                             "Tlag": self.T_lag,
-                             "Kf": self.Kf,
-                             "Ks": self.Ks,
-                             "Si": self.Si,
-                             "Su": self.Su,
-                             "Sf": self.Sf,
-                             "Ss": self.Ss,
-                             "Ei_dt": self.Ei_dt,
-                             "Ea_dt": self.Ei_dt,
-                             "Qs_dt": self.Qs_dt,
-                             "Qf_dt": self.Qf_dt,
-                             "Q_tot_dt": self.Q_tot_dt,
-                             "Q": self.Q,
-                             }
-    def updating_obj_from_dict_var(self) -> None:
-        """Function which inverts the dictionary above & sets objects correctly"""
-        param_names = ["Imax","Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
-        stor_names = ["Si", "Su", "Sf", "Ss"]
-        self.set_pars([self.dict_var_obj[par] for par in param_names])
-        self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
 
     def set_pars(self, par) -> None:
         self.I_max  = par[0]                # maximum interception
@@ -193,7 +157,36 @@ class HBV(Bmi):
             # Advance the model time by one step
             self.current_timestep += 1
 
-    def Weigfun(self):
+    def updating_dict_var_obj(self) -> None:
+        """Function which makes getting the objects more readable-  but adds more boiler plate.."""
+        self.dict_var_obj = {
+                             "Imax": self.I_max,
+                             "Ce": self.Ce,
+                             "Sumax": self.Su_max,
+                             "Beta": self.beta,
+                             "Pmax": self.P_max,
+                             "Tlag": self.T_lag,
+                             "Kf": self.Kf,
+                             "Ks": self.Ks,
+                             "Si": self.Si,
+                             "Su": self.Su,
+                             "Sf": self.Sf,
+                             "Ss": self.Ss,
+                             "Ei_dt": self.Ei_dt,
+                             "Ea_dt": self.Ei_dt,
+                             "Qs_dt": self.Qs_dt,
+                             "Qf_dt": self.Qf_dt,
+                             "Q_tot_dt": self.Q_tot_dt,
+                             "Q": self.Q,
+                             }
+    def updating_obj_from_dict_var(self) -> None:
+        """Function which inverts the dictionary above & sets objects correctly"""
+        param_names = ["Imax","Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
+        stor_names = ["Si", "Su", "Sf", "Ss"]
+        self.set_pars([self.dict_var_obj[par] for par in param_names])
+        self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
+
+    def weight_function(self):
         nmax=int(np.ceil(self.T_lag))
         if nmax==1:
             Weigths=float(1)
@@ -226,11 +219,11 @@ class HBV(Bmi):
             self.Q = self.memory_vector_lag[0]
 
             # Make a forecast to the next time step
-            self.memory_vector_lag = np.roll(self.memory_vector_lag,-1)  # This cycles the array [1,2,3,4] becomes [2,3,4,1]
+            self.memory_vector_lag = np.roll(self.memory_vector_lag, -1)  # This cycles the array [1,2,3,4] becomes [2,3,4,1]
             self.memory_vector_lag[-1] = 0                              # the next last entry becomes 0 (outside of convolution lag)
 
     def set_empty_memory_vector_lag(self):
-        self.weights = self.Weigfun() # generates weights using a weibull weight function
+        self.weights = self.weight_function() # generates weights using a weibull weight function
         return np.zeros(self.T_lag)
 
     def get_component_name(self) -> str:
@@ -244,7 +237,7 @@ class HBV(Bmi):
             if var_name == "memory_vector":
                 dest[:] = np.array(None)
                 message = "No action undertaken. Please use `set_value(f'memory_vector{n}',src)` where n is the index."
-                warnings.warn(message=message, type=SyntaxWarning)
+                warnings.warn(message, category=SyntaxWarning)
             else:
                 mem_index = int(var_name[len("memory_vector"):])
                 if mem_index < len(self.memory_vector_lag):
@@ -262,8 +255,8 @@ class HBV(Bmi):
 
     def get_var_units(self, var_name: str) -> str:
         # look up table
-        if var_name in self.dict_var_units:
-            return self.dict_var_units[var_name]
+        if var_name in DICT_VAR_UNITS:
+            return DICT_VAR_UNITS[var_name]
         else:
             raise ValueError(f"Unknown variable {var_name}")
 
@@ -293,7 +286,7 @@ class HBV(Bmi):
         elif var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 message = "No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index."
-                warnings.warn(message=message, type=SyntaxWarning)
+                warnings.warn(messages=message, category=SyntaxWarning)
                 pass
             else:
                 mem_index = int(var_name[len("memory_vector"):])
@@ -314,7 +307,7 @@ class HBV(Bmi):
     # first we set the new value in the dictionary
     # this doesn't update the obj...
     def get_output_var_names(self) -> Tuple[str]:
-        return tuple([str(key) for key in self.dict_var_units.keys()])
+        return tuple([str(key) for key in DICT_VAR_UNITS.keys()])
 
     # The BMI has to have some time-related functionality:
     def get_start_time(self) -> float:
@@ -332,7 +325,7 @@ class HBV(Bmi):
 
     def set_tlag(self, T_lag_in) -> int:
         """Ensures T_lag is an integer of at minimum 1"""
-        T_lag = max(1,int(round(T_lag_in,0)))
+        T_lag = max(1, int(round(T_lag_in, 0)))
         return T_lag
 
     def get_time_step(self) -> float:
@@ -340,7 +333,7 @@ class HBV(Bmi):
             return float((self.Ts.values[1] - self.Ts.values[0]) / np.timedelta64(1, "s"))
         else:
             message = "No time series defined"
-            warnings.warn(message=message, type=ImportWarning)
+            warnings.warn(message=message, category=ImportWarning)
             return 0.0
 
     def get_time_units(self) -> str:

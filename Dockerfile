@@ -33,7 +33,7 @@ FROM mambaorg/micromamba:1.3.1
 MAINTAINER David Haasnoot daafips@gmail.com
 
 # Here you can point to the source repository of this Dockerfile:
-LABEL org.opencontainers.image.source="https://github.com/Daafip/HBV-bmi-numpy"
+LABEL org.opencontainers.image.source="https://github.com/Daafip/HBV-bmi"
 
 # Install Python + additional conda-dependencies,
 # Here I added cartopy as an example
