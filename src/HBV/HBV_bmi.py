@@ -23,6 +23,8 @@ DICT_VAR_UNITS = {"Imax":"mm",
                     "Qf_dt": "mm/d",
                     "Q_tot_dt": "mm/d",
                     "Q": "mm/d"}
+
+
 class HBV(Bmi):
     """HBV model wrapped in a BMI interface."""
 
@@ -90,7 +92,6 @@ class HBV(Bmi):
         self.Su = stor[1] # Unsaturated Rootzone Storage
         self.Sf = stor[2] # Fastflow storage
         self.Ss = stor[3] # Groundwater storage
-
 
     def update(self) -> None:
         """ Updates model one timestep
@@ -179,6 +180,7 @@ class HBV(Bmi):
                              "Q_tot_dt": self.Q_tot_dt,
                              "Q": self.Q,
                              }
+
     def updating_obj_from_dict_var(self) -> None:
         """Function which inverts the dictionary above & sets objects correctly"""
         param_names = ["Imax","Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
@@ -286,7 +288,7 @@ class HBV(Bmi):
         elif var_name[:len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 message = "No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index."
-                warnings.warn(messages=message, category=SyntaxWarning)
+                warnings.warn(message=message, category=SyntaxWarning)
                 pass
             else:
                 mem_index = int(var_name[len("memory_vector"):])
