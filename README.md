@@ -52,3 +52,5 @@ Be aware of the non-intuitive [BMI](https://github.com/eWaterCycle/grpc4bmi) imp
 - Change `Q_m` to `Q` in order to better integrate data assimilation & just makes more sense. 
 ## v1.3.1
 - Fix bug in time indexing
+## v1.3.2
+- typo in update updating_dict_var_obj: was getting values wrong 

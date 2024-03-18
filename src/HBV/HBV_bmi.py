@@ -173,7 +173,7 @@ class HBV(Bmi):
                              "Sf": self.Sf,
                              "Ss": self.Ss,
                              "Ei_dt": self.Ei_dt,
-                             "Ea_dt": self.Ei_dt,
+                             "Ea_dt": self.Ea_dt,
                              "Qs_dt": self.Qs_dt,
                              "Qf_dt": self.Qf_dt,
                              "Q_tot_dt": self.Q_tot_dt,
