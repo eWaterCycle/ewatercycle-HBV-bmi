@@ -64,7 +64,7 @@ class HBV(Bmi):
         self.memory_vector_lag = self.set_empty_memory_vector_lag()
 
         # define storage & flow terms, flows 0, storages initialised 
-        s_in = np.array(self.config['initial_storage'].split(','),dtype=np.float64)
+        s_in = np.array(self.config['initial_storage'].split(','), dtype=np.float64)
         self.set_storage(s_in)
 
         # set other flows for initial step 
@@ -131,7 +131,7 @@ class HBV(Bmi):
 
             # Transpiration
             self.Ep_dt = max(0, self.Ep_dt - self.Ei_dt)        # Transpiration
-            self.Ea_dt = self.Ep_dt  * (self.Su / (self.Su_max * self.Ce))
+            self.Ea_dt = self.Ep_dt * (self.Su / (self.Su_max * self.Ce))
             self.Ea_dt = min(self.Su, self.Ea_dt)            # limited by water in soil
             self.Su    = self.Su - self.Ea_dt
 
@@ -183,46 +183,51 @@ class HBV(Bmi):
 
     def updating_obj_from_dict_var(self) -> None:
         """Function which inverts the dictionary above & sets objects correctly"""
-        param_names = ["Imax","Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
+        param_names = ["Imax", "Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
         stor_names = ["Si", "Su", "Sf", "Ss"]
         self.set_pars([self.dict_var_obj[par] for par in param_names])
         self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
 
     def weight_function(self):
-        nmax=int(np.ceil(self.T_lag))
-        if nmax==1:
-            Weigths=float(1)
+        """Generates weights for convolution"""
+
+        n_max = int(np.ceil(self.T_lag))
+        if n_max == 1:
+            weights = float(1)
         else:
-            Weigths=np.zeros(nmax)
-            th=self.T_lag/2
-            nh=int(np.floor(th))
-            for i in range(0,nh):
-                Weigths[i]=(float(i+1)-0.5)/th
-            i=nh
+            weights = np.zeros(n_max)
+            th = self.T_lag/2
+            nh = int(np.floor(th))
+            for i in range(0, nh):
+                weights[i] = (float(i+1)-0.5)/th
+            i = nh
 
-            Weigths[i]=(1+(float(i+1)-1)/th)*(th-int(np.floor(th)))/2+(1+(self.T_lag-float(i+1))/th)*(int(np.floor(th))+1-th)/2
+            weights[i] = (1 + (float(i+1) - 1) / th) * (th - int(np.floor(th)))/2 + (1 + (self.T_lag - float(i + 1)) / th) * (int(np.floor(th)) + 1 - th) / 2
             for i in range(nh+1, int(np.floor(self.T_lag))):
-                Weigths[i]=(self.T_lag-float(i+1)+.5)/th
+                weights[i] = (self.T_lag - float(i + 1) + 0.5) / th
 
-            if self.T_lag>int(np.floor(self.T_lag)):
-                Weigths[int(np.floor(self.T_lag))]=(self.T_lag-int(np.floor(self.T_lag)))**2/(2*th)
+            if self.T_lag > int(np.floor(self.T_lag)):
+                weights[int(np.floor(self.T_lag))] = (self.T_lag - int(np.floor(self.T_lag)))**2 / (2*th)
 
-            Weigths=Weigths/sum(Weigths)
+            weights = weights / sum(weights)
 
-        return Weigths
+        return weights
 
     def add_time_lag(self) -> None:
+        """Adds lag based on weights and discharge"""
         # with support for T_lag =0
         if len(self.memory_vector_lag) > 0:
             # Distribute current Q_tot_dt to memory vector
-            self.memory_vector_lag += self.weights*self.Q_tot_dt
+            self.memory_vector_lag += self.weights * self.Q_tot_dt
 
             # Extract the latest Qm
             self.Q = self.memory_vector_lag[0]
 
             # Make a forecast to the next time step
-            self.memory_vector_lag = np.roll(self.memory_vector_lag, -1)  # This cycles the array [1,2,3,4] becomes [2,3,4,1]
-            self.memory_vector_lag[-1] = 0                              # the next last entry becomes 0 (outside of convolution lag)
+            # This cycles the array [1,2,3,4] becomes [2,3,4,1]
+            self.memory_vector_lag = np.roll(self.memory_vector_lag, -1)
+            # the next last entry becomes 0 (outside of convolution lag)
+            self.memory_vector_lag[-1] = 0
 
     def set_empty_memory_vector_lag(self):
         self.weights = self.weight_function() # generates weights using a weibull weight function
