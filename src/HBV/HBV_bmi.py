@@ -49,9 +49,7 @@ class HBV(Bmi):
 
         self.EP = utils.load_var(self.config["potential_evaporation_file"], "pev")
 
-        self.Tmin = utils.load_var(self.config["minimum_temperature_file"], "tasmin")
-        self.Tmax = utils.load_var(self.config["maximum_temperature_file"], "tasmax")
-        self.Tmean = (self.Tmax + self.Tmin) / 2
+        self.Tmean = utils.load_var(self.config["mean_temperature_file"], "tasmean")
 
         # set up times
         self.time = self.P['time'].astype("datetime64[s]")
