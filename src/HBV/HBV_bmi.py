@@ -125,7 +125,7 @@ class HBV(Bmi):
             else:
                 self.Pr = self.P_dt # if not snowing, all rainfall
                 self.Ps = 0         # No snow
-                self.M_dt = min(self.Sp / self.dt,  self.FM * (self.Tmean - self.Tt)) # melt factor * diff in temp
+                self.M_dt = min(self.Sp / self.dt,  self.FM * (self.Tmean_i  - self.Tt)) # melt factor * diff in temp
                 self.Sp -= self.M_dt # remove melt from snowpack content
                 self.Pr += self.M_dt # add it to `rainfall`: snow melt can also be intercepted
 
