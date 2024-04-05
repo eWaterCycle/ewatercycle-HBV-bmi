@@ -108,9 +108,9 @@ class HBV(Bmi):
 
         Old documentation:
             Function to run the update part of one timestep of the HBV model
-            par: array/list containing 8 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks (floats)
-            s_in: array/list containing 4 storage terms which are input to the timestep: Si,  Su, Sf, Ss (floats)
-            storage_terms: list of arrays which store: Si, Su, Sf, Ss, Ei_dt, Ea_dt, Qs_dt_lst, Qf_dt_lst, Q_tot_dt
+            par: array/list containing 9 parameters: Imax,  Ce,  Sumax, beta,  Pmax,  T_lag,   Kf,   Ks, Fm (floats)
+            s_in: array/list containing 5 storage terms which are input to the timestep: Si,  Su, Sf, Ss,Sp (floats)
+            storage_terms: list of arrays which store: Si, Su, Sf, Ss,Sp, Ei_dt, Ea_dt, Qs_dt_lst, Qf_dt_lst, Q_tot_dt
             step_n - nth step which formard model takes: used to determin which Precipitaion & evaporation to use
         """
         if self.current_timestep < self.end_timestep:
@@ -209,8 +209,8 @@ class HBV(Bmi):
 
     def updating_obj_from_dict_var(self) -> None:
         """Function which inverts the dictionary above & sets objects correctly"""
-        param_names = ["Imax", "Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks"]
-        stor_names = ["Si", "Su", "Sf", "Ss"]
+        param_names = ["Imax", "Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks","FM"]
+        stor_names = ["Si", "Su", "Sf", "Ss","SP"]
         self.set_pars([self.dict_var_obj[par] for par in param_names])
         self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
 
