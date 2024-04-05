@@ -13,10 +13,13 @@ DICT_VAR_UNITS = {"Imax":"mm",
                     "Tlag": "d",
                     "Kf": "-",
                     "Ks": "-",
+                    "FM": "mm/deg/d",
                     "Si": "mm",
                     "Su": "mm",
                     "Sf": "mm",
                     "Ss": "mm",
+                    "Sp": "mm",
+                    "M_dt": "mm/d",
                     "Ei_dt": "mm/d",
                     "Ea_dt": "mm/d",
                     "Qs_dt": "mm/d",
@@ -44,17 +47,20 @@ class HBV(Bmi):
         # store forcing & obs
         self.P = utils.load_var(self.config["precipitation_file"], "pr")
 
-        # add Tas, Tmin and Tmax support for snow component ??!
         self.EP = utils.load_var(self.config["potential_evaporation_file"], "pev")
 
+        self.Tmin = utils.load_var(self.config["minimum_temperature_file"], "tasmin")
+        self.Tmax = utils.load_var(self.config["maximum_temperature_file"], "tasmax")
+        self.Tmean = (self.Tmax + self.Tmin) / 2
+
         # set up times
-        self.Ts = self.P['time'].astype("datetime64[s]")
-        self.end_timestep = len(self.Ts.values)
+        self.time = self.P['time'].astype("datetime64[s]")
+        self.end_timestep = len(self.time.values)
         self.current_timestep = 0
 
         # time step size in seconds (to be able to do unit conversions) - change here to days
         self.dt = (
-            self.Ts.values[1] - self.Ts.values[0]
+            self.time.values[1] - self.time.values[0]
         ) / np.timedelta64(1, "s") / 24 / 3600
 
         # define parameters 
@@ -67,7 +73,8 @@ class HBV(Bmi):
         s_in = np.array(self.config['initial_storage'].split(','), dtype=np.float64)
         self.set_storage(s_in)
 
-        # set other flows for initial step 
+        # set other flows for initial step
+        self.M_dt      = 0       # snow melt
         self.Ei_dt     = 0       # interception evaporation
         self.Ea_dt     = 0       # actual evaportation
         self.Qs_dt     = 0       # slow flow
@@ -75,7 +82,8 @@ class HBV(Bmi):
         self.Q_tot_dt  = 0       # total flow
         self.Q       = 0       # Final model prediction
 
-        # stores corresponding objects for variables
+        # other constant for Snow:
+        self.Tt = -0.5 # Threshold temperature set for now. Can be between -1 to 1
 
     def set_pars(self, par) -> None:
         self.I_max  = par[0]                # maximum interception
@@ -86,12 +94,14 @@ class HBV(Bmi):
         self.T_lag  = self.set_tlag(par[5]) # used in triangular transfer function
         self.Kf     = par[6]                # Qf=kf*sf
         self.Ks     = par[7]                # Qs=Ks*
+        self.FM     = par[8]                # degree day factor: Melt FM * (Tmean-Tt)
 
     def set_storage(self, stor) -> None:
         self.Si = stor[0] # Interception storage
         self.Su = stor[1] # Unsaturated Rootzone Storage
         self.Sf = stor[2] # Fastflow storage
         self.Ss = stor[3] # Groundwater storage
+        self.Sp = stor[4] # SnowPack storage
 
     def update(self) -> None:
         """ Updates model one timestep
@@ -107,10 +117,23 @@ class HBV(Bmi):
             self.P_dt  = self.P.isel(time=self.current_timestep).to_numpy() * self.dt
             self.Ep_dt = self.EP.isel(time=self.current_timestep).to_numpy() * self.dt
 
+            # split P into rain and snow:
+            if self.Tmean < self.Tt:
+                self.Pr = 0 # if snowing, no rainfall
+                self.Ps = self.P_dt # all precip goes into snow
+                self.M_dt = 0 # too cold to meld
+                self.Sp += self.Ps
+            else:
+                self.Pr = self.P_dt # if not snowing, all rainfall
+                self.Ps = 0         # No snow
+                self.M_dt = min(self.Sp / self.dt,  self.FM * (self.Tmean - self.Tt)) # melt factor * diff in temp
+                self.Sp -= self.M_dt # remove melt from snowpack content
+                self.Pr += self.M_dt # add it to `rainfall`: snow melt can also be intercepted
+
             # Interception Reservoir
-            if self.P_dt > 0:
+            if self.Pr > 0:
                 # if there is rain, no evap
-                self.Si    = self.Si + self.P_dt               # increase the storage
+                self.Si    = self.Si + self.Pr               # increase the storage
                 self.Pe_dt = max((self.Si - self.I_max) / self.dt, 0)
                 self.Si    = self.Si - self.Pe_dt
                 self.Ei_dt = 0                          # if rainfall, evaporation = 0 as too moist
@@ -169,10 +192,13 @@ class HBV(Bmi):
                              "Tlag": self.T_lag,
                              "Kf": self.Kf,
                              "Ks": self.Ks,
+                             "FM": self.FM,
                              "Si": self.Si,
                              "Su": self.Su,
                              "Sf": self.Sf,
                              "Ss": self.Ss,
+                             "Sp": self.Sp,
+                             "M_dt": self.M_dt,
                              "Ei_dt": self.Ei_dt,
                              "Ea_dt": self.Ea_dt,
                              "Qs_dt": self.Qs_dt,
@@ -189,7 +215,7 @@ class HBV(Bmi):
         self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
 
     def weight_function(self):
-        """Generates weights for convolution"""
+        """Generates weights for convolution using generates a weibull weight function"""
 
         n_max = int(np.ceil(self.T_lag))
         if n_max == 1:
@@ -230,7 +256,7 @@ class HBV(Bmi):
             self.memory_vector_lag[-1] = 0
 
     def set_empty_memory_vector_lag(self):
-        self.weights = self.weight_function() # generates weights using a weibull weight function
+        self.weights = self.weight_function()
         return np.zeros(self.T_lag)
 
     def get_component_name(self) -> str:
@@ -319,16 +345,16 @@ class HBV(Bmi):
     # The BMI has to have some time-related functionality:
     def get_start_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return get_unixtime(self.Ts.isel(time=0).values) # type: ignore
+        return get_unixtime(self.time.isel(time=0).values) # type: ignore
 
     def get_end_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return get_unixtime(self.Ts.isel(time=-1).values) # type: ignore
+        return get_unixtime(self.time.isel(time=-1).values) # type: ignore
 
     def get_current_time(self) -> float:
         """Return current time in seconds since 1 january 1970."""
         # we get the timestep from the data, but the stopping condition requires it to go one beyond. 
-        return get_unixtime(self.Ts.isel(time=self.current_timestep).values) # type: ignore
+        return get_unixtime(self.time.isel(time=self.current_timestep).values) # type: ignore
 
     def set_tlag(self, T_lag_in) -> int:
         """Ensures T_lag is an integer of at minimum 1"""
@@ -336,8 +362,8 @@ class HBV(Bmi):
         return T_lag
 
     def get_time_step(self) -> float:
-        if len(self.Ts) > 1:
-            return float((self.Ts.values[1] - self.Ts.values[0]) / np.timedelta64(1, "s"))
+        if len(self.time) > 1:
+            return float((self.time.values[1] - self.time.values[0]) / np.timedelta64(1, "s"))
         else:
             message = "No time series defined"
             warnings.warn(message=message, category=ImportWarning)
