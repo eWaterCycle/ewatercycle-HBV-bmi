@@ -114,9 +114,10 @@ class HBV(Bmi):
         if self.current_timestep < self.end_timestep:
             self.P_dt  = self.P.isel(time=self.current_timestep).to_numpy() * self.dt
             self.Ep_dt = self.EP.isel(time=self.current_timestep).to_numpy() * self.dt
+            self.Tmean_i = self.Tmean.isel(time=self.current_timestep).to_numpy() * self.dt
 
             # split P into rain and snow:
-            if self.Tmean < self.Tt:
+            if self.Tmean_i < self.Tt:
                 self.Pr = 0 # if snowing, no rainfall
                 self.Ps = self.P_dt # all precip goes into snow
                 self.M_dt = 0 # too cold to meld
