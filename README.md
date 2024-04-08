@@ -48,11 +48,13 @@ Be aware of the non-intuitive [BMI](https://github.com/eWaterCycle/grpc4bmi) imp
 ### V1.2.0
 - pretty big issue with setting values fixed - won't affect most use but will cause issues for Data Assimilation
 - use opportunity to name all HBV packages/naming/images to 1.2.0 
-### V1.3.0
+## V1.3.0
 - Change `Q_m` to `Q` in order to better integrate data assimilation & just makes more sense. 
-## v1.3.1
+### v1.3.1
 - Fix bug in time indexing
-## v1.3.2
+### v1.3.2
 - typo in update updating_dict_var_obj: was getting values wrong 
 ## V1.4.0
 - adding snow reservoir
+### V1.4.1
+- bug fix in naming of values 
