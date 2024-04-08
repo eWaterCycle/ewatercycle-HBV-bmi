@@ -54,3 +54,5 @@ Be aware of the non-intuitive [BMI](https://github.com/eWaterCycle/grpc4bmi) imp
 - Fix bug in time indexing
 ## v1.3.2
 - typo in update updating_dict_var_obj: was getting values wrong 
+## V1.4.0
+- adding snow reservoir
