@@ -8,7 +8,7 @@ HBV (Hydrologiska Byråns Vattenbalansavdelning) is a conceptual hydrological mo
 
 This current implementation is _without_ a snow reservoir, as shown below.
 (_Image from the course ENVM1502 - river basin Hydrology (Markus Hrachowitz)._) 
-![model_layout.png](https://raw.githubusercontent.com/Daafip/HBV-bmi/main/model_layout.png)
+![model_layout.png](https://raw.githubusercontent.com/Daafip/HBV-bmi/main/docs/model_layout.png)
 
 Actual eWatercycle model wrapper can be found on [GitHub](https://github.com/Daafip/ewatercycle-hbv) with accompanying [documentation](https://ewatercycle-hbv.readthedocs.io/en/latest/)
 
