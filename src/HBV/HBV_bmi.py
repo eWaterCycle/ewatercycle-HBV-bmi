@@ -208,7 +208,7 @@ class HBV(Bmi):
     def updating_obj_from_dict_var(self) -> None:
         """Function which inverts the dictionary above & sets objects correctly"""
         param_names = ["Imax", "Ce", "Sumax", "Beta", "Pmax", "Tlag", "Kf", "Ks", "FM"]
-        stor_names = ["Si", "Su", "Sf", "Ss", "SP"]
+        stor_names = ["Si", "Su", "Sf", "Ss", "Sp"]
         self.set_pars([self.dict_var_obj[par] for par in param_names])
         self.set_storage([self.dict_var_obj[stor] for stor in stor_names])
 
