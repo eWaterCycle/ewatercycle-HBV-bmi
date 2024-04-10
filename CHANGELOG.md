@@ -21,4 +21,4 @@
 ### V1.4.1
 - bug fix in naming of values 
 ## v1.5.0
-  - Refactor potential evaportion from `pev` to `evspsblpot` & `tasmean` to `tas` to match convention
+  - Refactor potential evaporation from `pev` to `evspsblpot` & `tasmean` to `tas` to match convention
