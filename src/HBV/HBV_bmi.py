@@ -46,9 +46,9 @@ class HBV(Bmi):
         # store forcing & obs
         self.P = utils.load_var(self.config["precipitation_file"], "pr")
 
-        self.EP = utils.load_var(self.config["potential_evaporation_file"], "pev")
+        self.EP = utils.load_var(self.config["potential_evaporation_file"], "evspsblpot")
 
-        self.Tmean = utils.load_var(self.config["mean_temperature_file"], "tasmean")
+        self.Tmean = utils.load_var(self.config["mean_temperature_file"], "tas")
 
         # set up times
         self.time = self.P['time'].astype("datetime64[s]")
