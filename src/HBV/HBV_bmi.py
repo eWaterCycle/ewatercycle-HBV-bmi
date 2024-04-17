@@ -162,12 +162,12 @@ class HBV(Bmi):
 
             # Fast Reservoir
             self.Sf = self.Sf + Quf_dt
-            self.Qf_dt = self.dt * self.Kf * self.Sf
+            self.Qf_dt = max(self.dt * self.Kf * self.Sf, 0)
             self.Sf = self.Sf - self.Qf_dt
 
             # Slow Reservoir
             self.Ss = self.Ss + Qus_dt
-            self.Qs_dt = self.Ss * self.Ks * self.dt
+            self.Qs_dt = max(self.Ss * self.Ks * self.dt, 0)
             self.Ss = self.Ss - self.Qs_dt
 
             # total = fast + slow

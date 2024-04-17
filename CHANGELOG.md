@@ -21,4 +21,6 @@
 ### V1.4.1
 - bug fix in naming of values 
 ## v1.5.0
-  - Refactor potential evaporation from `pev` to `evspsblpot` & `tasmean` to `tas` to match convention
+- Refactor potential evaporation from `pev` to `evspsblpot` & `tasmean` to `tas` to match convention
+### v1.5.1
+- Groundwater and overland flow now can no longer be negative   
