@@ -44,20 +44,23 @@ class HBV(Bmi):
         self.config: dict[str, Any] = utils.read_config(config_file)
 
         # store forcing & obs
-        self.P = utils.load_var(self.config["precipitation_file"], "pr")
+        self.ds_P = utils.load_var(self.config["precipitation_file"], "pr")
+        self.P = self.ds_P.to_numpy()
 
-        self.EP = utils.load_var(self.config["potential_evaporation_file"], "evspsblpot")
+        self.ds_EP = utils.load_var(self.config["potential_evaporation_file"], "evspsblpot")
+        self.EP = self.ds_EP.to_numpy()
 
-        self.Tmean = utils.load_var(self.config["mean_temperature_file"], "tas")
+        self.ds_Tmean = utils.load_var(self.config["mean_temperature_file"], "tas")
+        self.Tmean = self.ds_Tmean.to_numpy()
 
         # set up times
-        self.time = self.P['time'].astype("datetime64[s]")
-        self.end_timestep = len(self.time.values)
+        self.time = self.ds_P['time'].astype("datetime64[s]").to_numpy()
+        self.end_timestep = len(self.time)
         self.current_timestep = 0
 
         # time step size in seconds (to be able to do unit conversions) - change here to days
         self.dt = (
-                          self.time.values[1] - self.time.values[0]
+                          self.time[1] - self.time[0]
                   ) / np.timedelta64(1, "s") / 24 / 3600
 
         # define parameters 
@@ -111,9 +114,9 @@ class HBV(Bmi):
             step_n - nth step which formard model takes: used to determin which Precipitaion & evaporation to use
         """
         if self.current_timestep < self.end_timestep:
-            self.P_dt = self.P.isel(time=self.current_timestep).to_numpy() * self.dt
-            self.Ep_dt = self.EP.isel(time=self.current_timestep).to_numpy() * self.dt
-            self.Tmean_i = self.Tmean.isel(time=self.current_timestep).to_numpy() * self.dt
+            self.P_dt = self.P[self.current_timestep] * self.dt
+            self.Ep_dt = self.EP[self.current_timestep]  * self.dt
+            self.Tmean_i = self.Tmean[self.current_timestep]  * self.dt
 
             # split P into rain and snow:
             if self.Tmean_i < self.Tt:
@@ -346,16 +349,16 @@ class HBV(Bmi):
     # The BMI has to have some time-related functionality:
     def get_start_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return get_unixtime(self.time.isel(time=0).values)  # type: ignore
+        return get_unixtime(self.time[0])  # type: ignore
 
     def get_end_time(self) -> float:
         """Return end time in seconds since 1 january 1970."""
-        return get_unixtime(self.time.isel(time=-1).values)  # type: ignore
+        return get_unixtime(self.time[-1])  # type: ignore
 
     def get_current_time(self) -> float:
         """Return current time in seconds since 1 january 1970."""
         # we get the timestep from the data, but the stopping condition requires it to go one beyond. 
-        return get_unixtime(self.time.isel(time=self.current_timestep).values)  # type: ignore
+        return get_unixtime(self.time[self.current_timestep])  # type: ignore
 
     def set_tlag(self, T_lag_in) -> int:
         """Ensures T_lag is an integer of at minimum 1"""
@@ -364,7 +367,7 @@ class HBV(Bmi):
 
     def get_time_step(self) -> float:
         if len(self.time) > 1:
-            return float((self.time.values[1] - self.time.values[0]) / np.timedelta64(1, "s"))
+            return float((self.time[1] - self.time[0]) / np.timedelta64(1, "s"))
         else:
             message = "No time series defined"
             warnings.warn(message=message, category=ImportWarning)
@@ -415,11 +418,11 @@ class HBV(Bmi):
 
     # Non-uniform rectilinear, curvilinear
     def get_grid_x(self, grid: int, x: np.ndarray) -> np.ndarray:
-        x[:] = self.P["lon"].to_numpy()
+        x[:] = self.ds_P["lon"].to_numpy()
         return x
 
     def get_grid_y(self, grid: int, y: np.ndarray) -> np.ndarray:
-        y[:] = self.P["lat"].to_numpy()
+        y[:] = self.ds_P["lat"].to_numpy()
         return y
 
     def finalize(self) -> None:
