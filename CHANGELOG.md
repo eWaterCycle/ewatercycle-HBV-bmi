@@ -21,4 +21,10 @@
 ### V1.4.1
 - bug fix in naming of values 
 ## v1.5.0
-  - Refactor potential evaporation from `pev` to `evspsblpot` & `tasmean` to `tas` to match convention
+- Refactor potential evaporation from `pev` to `evspsblpot` & `tasmean` to `tas` to match convention
+### v1.5.1
+- Groundwater and overland flow now can no longer be negative   
+### v1.5.2
+- now loads forcing as xarray and then immediately stores the values as numpy arrays in memory. This might be less 
+efficient as xarray takes care of lazy loading in the background. 
+But on long runs using data assimilation the lazy loading seemed to cause issues
