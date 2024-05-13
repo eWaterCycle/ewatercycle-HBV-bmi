@@ -1,8 +1,11 @@
+import gc
+
 from bmipy import Bmi
 from typing import Any, Tuple
 from HBV import utils
 import numpy as np
 import warnings
+import gc
 
 DICT_VAR_UNITS = {"Imax": "mm",
                   "Ce": "-",
@@ -426,8 +429,11 @@ class HBV(Bmi):
         return y
 
     def finalize(self) -> None:
-        """"Nothing to wrapup"""
-        pass
+        """"remove all files"""
+        del (self.config, self.ds_P, self.P, self.ds_EP, self.EP, self.ds_Tmean,
+             self.Tmean, self.time, self.end_timestep , self.current_timestep, self.dt,
+             self.memory_vector_lag)
+        gc.collect()
 
     # not implemented & not planning to
 
