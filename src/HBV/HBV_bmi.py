@@ -1,12 +1,11 @@
 import gc
 
-from typing import Any, Tuple, TYPE_CHECKING
+from typing import Any, Tuple
 from HBV import utils
 import numpy as np
 import warnings
+from bmipy import Bmi
 
-if TYPE_CHECKING:
-    from bmipy import Bmi
 
 DICT_VAR_UNITS = {
     "Imax": "mm",
@@ -33,7 +32,7 @@ DICT_VAR_UNITS = {
 }
 
 
-class HBV("Bmi"):
+class HBV(Bmi):
     """HBV model wrapped in a BMI interface."""
 
     def initialize(self, config_file: str) -> None:

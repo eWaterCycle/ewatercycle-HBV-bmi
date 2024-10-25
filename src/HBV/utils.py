@@ -48,7 +48,6 @@ def load_var(ncfile: str | Path, varname: str) -> xr.DataArray:
         data = load_precip(forcing.directory / forcing.pr)
     """
     with dask.config.set(scheduler="synchronous"):
-        print(ncfile)
         data: xr.Dataset = xr.load_dataset(ncfile)
 
     if "time" not in data.dims:
