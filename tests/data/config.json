@@ -1,0 +1,7 @@
+{
+    "precipitation_file": "ewatercycle_makkink_forcing/OBS6_ERA5_reanaly_1_day_pr_1997-2000.nc",
+    "potential_evaporation_file": "ewatercycle_makkink_forcing/Derived_Makkink_evspsblpot.nc",
+    "mean_temperature_file": "ewatercycle_makkink_forcing/OBS6_ERA5_reanaly_1_day_tas_1997-2000.nc",
+    "parameters": "4.843235614481723,0.9900228877505095,87.7879673161766,2.6729835550404095,0.29315592634372195,1.2944615970981384,0.08362164400640426,0.005459532539096511,1.6817439352332828",
+    "initial_storage": "0,100,0,5,0"
+}
