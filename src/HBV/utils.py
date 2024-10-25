@@ -4,9 +4,20 @@ import json
 import dask
 
 
+INPUT_FILES = ["precipitation_file", "potential_evaporation_file", "mean_temperature_file"]
+
+
 def read_config(config_file: str) -> dict:
     with open(config_file) as cfg:
         config = json.load(cfg)
+
+    for file in INPUT_FILES:
+        config[file] = Path(config[file])
+
+        #Make forcing paths absolute based on location of config file:
+        if not config[file].is_absolute():
+            config[file] = (Path(config_file).parent / config[file]).absolute()
+
     return config
 
 
@@ -37,12 +48,13 @@ def load_var(ncfile: str | Path, varname: str) -> xr.DataArray:
         data = load_precip(forcing.directory / forcing.pr)
     """
     with dask.config.set(scheduler="synchronous"):
+        print(ncfile)
         data: xr.Dataset = xr.load_dataset(ncfile)
 
     if "time" not in data.dims:
         msg = "No time dim in data!"
         raise ValueError(msg)
-    if varname not in data.dims:
+    if varname not in data.data_vars:
         msg = f"Variable '{varname} is missing from the forcing data!"
         raise ValueError(msg)
 
