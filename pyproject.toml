@@ -10,6 +10,7 @@ license = "Apache-2.0"
 version = "1.5.2"
 authors = [
   { name = "David Haasnoot", email = "davidhaasnoot@gmail.com" },
+  { name = "Bart Schilperoort", email = "b.schilperoort@esciencecenter.nl" },
 ]
 
 # Include here only the dependencies for the BMI Model
@@ -19,5 +20,12 @@ dependencies = [
   "numpy",
   "xarray",
   "netcdf4",
+  "dask",
   "pandas",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
 ]
