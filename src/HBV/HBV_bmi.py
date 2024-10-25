@@ -7,40 +7,42 @@ import numpy as np
 import warnings
 import gc
 
-DICT_VAR_UNITS = {"Imax": "mm",
-                  "Ce": "-",
-                  "Sumax": "mm",
-                  "Beta": "-",
-                  "Pmax": "mm",
-                  "Tlag": "d",
-                  "Kf": "-",
-                  "Ks": "-",
-                  "FM": "mm/deg/d",
-                  "Si": "mm",
-                  "Su": "mm",
-                  "Sf": "mm",
-                  "Ss": "mm",
-                  "Sp": "mm",
-                  "M_dt": "mm/d",
-                  "Ei_dt": "mm/d",
-                  "Ea_dt": "mm/d",
-                  "Qs_dt": "mm/d",
-                  "Qf_dt": "mm/d",
-                  "Q_tot_dt": "mm/d",
-                  "Q": "mm/d"}
+DICT_VAR_UNITS = {
+    "Imax": "mm",
+    "Ce": "-",
+    "Sumax": "mm",
+    "Beta": "-",
+    "Pmax": "mm",
+    "Tlag": "d",
+    "Kf": "-",
+    "Ks": "-",
+    "FM": "mm/deg/d",
+    "Si": "mm",
+    "Su": "mm",
+    "Sf": "mm",
+    "Ss": "mm",
+    "Sp": "mm",
+    "M_dt": "mm/d",
+    "Ei_dt": "mm/d",
+    "Ea_dt": "mm/d",
+    "Qs_dt": "mm/d",
+    "Qf_dt": "mm/d",
+    "Q_tot_dt": "mm/d",
+    "Q": "mm/d",
+}
 
 
 class HBV(Bmi):
     """HBV model wrapped in a BMI interface."""
 
     def initialize(self, config_file: str) -> None:
-        """"Based on LeakyBucketBMI simple implementation of HBV without snow component
-            Requires atleast:
-            ---------------------
-            'precipitation_file': xarray with "pr" variable & time component
-            'potential_evaporation_file': xarray with "pev" variable of same nature as pr
-            'parameters': list of 8 parameters by a ','
-            'initial_storage' list of 4 storage parameters split by a ','
+        """ "Based on LeakyBucketBMI simple implementation of HBV without snow component
+        Requires atleast:
+        ---------------------
+        'precipitation_file': xarray with "pr" variable & time component
+        'potential_evaporation_file': xarray with "pev" variable of same nature as pr
+        'parameters': list of 8 parameters by a ','
+        'initial_storage' list of 4 storage parameters split by a ','
 
         """
         # open json files containing data
@@ -50,30 +52,30 @@ class HBV(Bmi):
         self.ds_P = utils.load_var(self.config["precipitation_file"], "pr")
         self.P = self.ds_P.to_numpy()
 
-        self.ds_EP = utils.load_var(self.config["potential_evaporation_file"], "evspsblpot")
+        self.ds_EP = utils.load_var(
+            self.config["potential_evaporation_file"], "evspsblpot"
+        )
         self.EP = self.ds_EP.to_numpy()
 
         self.ds_Tmean = utils.load_var(self.config["mean_temperature_file"], "tas")
         self.Tmean = self.ds_Tmean.to_numpy()
 
         # set up times
-        self.time = self.ds_P['time'].astype("datetime64[s]").to_numpy()
+        self.time = self.ds_P["time"].astype("datetime64[s]").to_numpy()
         self.end_timestep = len(self.time)
         self.current_timestep = 0
 
         # time step size in seconds (to be able to do unit conversions) - change here to days
-        self.dt = (
-                          self.time[1] - self.time[0]
-                  ) / np.timedelta64(1, "s") / 24 / 3600
+        self.dt = (self.time[1] - self.time[0]) / np.timedelta64(1, "s") / 24 / 3600
 
-        # define parameters 
-        self.set_pars(np.array(self.config['parameters'].split(','), dtype=np.float64))
+        # define parameters
+        self.set_pars(np.array(self.config["parameters"].split(","), dtype=np.float64))
 
         # add memory vector for tlag & run weights function
         self.memory_vector_lag = self.set_empty_memory_vector_lag()
 
-        # define storage & flow terms, flows 0, storages initialised 
-        s_in = np.array(self.config['initial_storage'].split(','), dtype=np.float64)
+        # define storage & flow terms, flows 0, storages initialised
+        s_in = np.array(self.config["initial_storage"].split(","), dtype=np.float64)
         self.set_storage(s_in)
 
         # set other flows for initial step
@@ -107,7 +109,7 @@ class HBV(Bmi):
         self.Sp = stor[4]  # SnowPack storage
 
     def update(self) -> None:
-        """ Updates model one timestep
+        """Updates model one timestep
 
         Old documentation:
             Function to run the update part of one timestep of the HBV model
@@ -118,8 +120,8 @@ class HBV(Bmi):
         """
         if self.current_timestep < self.end_timestep:
             self.P_dt = self.P[self.current_timestep] * self.dt
-            self.Ep_dt = self.EP[self.current_timestep]  * self.dt
-            self.Tmean_i = self.Tmean[self.current_timestep]  * self.dt
+            self.Ep_dt = self.EP[self.current_timestep] * self.dt
+            self.Tmean_i = self.Tmean[self.current_timestep] * self.dt
 
             # split P into rain and snow:
             if self.Tmean_i < self.Tt:
@@ -130,9 +132,13 @@ class HBV(Bmi):
             else:
                 self.Pr = self.P_dt  # if not snowing, all rainfall
                 self.Ps = 0  # No snow
-                self.M_dt = min(self.Sp / self.dt, self.FM * (self.Tmean_i - self.Tt))  # melt factor * diff in temp
+                self.M_dt = min(
+                    self.Sp / self.dt, self.FM * (self.Tmean_i - self.Tt)
+                )  # melt factor * diff in temp
                 self.Sp -= self.M_dt  # remove melt from snowpack content
-                self.Pr += self.M_dt  # add it to `rainfall`: snow melt can also be intercepted
+                self.Pr += (
+                    self.M_dt
+                )  # add it to `rainfall`: snow melt can also be intercepted
 
             # Interception Reservoir
             if self.Pr > 0:
@@ -144,7 +150,9 @@ class HBV(Bmi):
             else:
                 # Evaporation only when there is no rainfall
                 self.Pe_dt = 0  # nothing flows in so must be 0
-                self.Ei_dt = min(self.Ep_dt, self.Si / self.dt)  # evaporation limited by storage
+                self.Ei_dt = min(
+                    self.Ep_dt, self.Si / self.dt
+                )  # evaporation limited by storage
                 self.Si = self.Si - self.Ei_dt
 
             # split flow into Unsaturated Reservoir and Fast flow
@@ -163,7 +171,9 @@ class HBV(Bmi):
             self.Su = self.Su - self.Ea_dt
 
             # Percolation
-            Qus_dt = self.P_max * (self.Su / self.Su_max) * self.dt  # Flux from Su to Ss
+            Qus_dt = (
+                self.P_max * (self.Su / self.Su_max) * self.dt
+            )  # Flux from Su to Ss
             self.Su = self.Su - Qus_dt
 
             # Fast Reservoir
@@ -188,28 +198,28 @@ class HBV(Bmi):
     def updating_dict_var_obj(self) -> None:
         """Function which makes getting the objects more readable-  but adds more boiler plate.."""
         self.dict_var_obj = {
-                            "Imax": self.I_max,
-                            "Ce": self.Ce,
-                            "Sumax": self.Su_max,
-                            "Beta": self.beta,
-                            "Pmax": self.P_max,
-                            "Tlag": self.T_lag,
-                            "Kf": self.Kf,
-                            "Ks": self.Ks,
-                            "FM": self.FM,
-                            "Si": self.Si,
-                            "Su": self.Su,
-                            "Sf": self.Sf,
-                            "Ss": self.Ss,
-                            "Sp": self.Sp,
-                            "M_dt": self.M_dt,
-                            "Ei_dt": self.Ei_dt,
-                            "Ea_dt": self.Ea_dt,
-                            "Qs_dt": self.Qs_dt,
-                            "Qf_dt": self.Qf_dt,
-                            "Q_tot_dt": self.Q_tot_dt,
-                            "Q": self.Q,
-                            }
+            "Imax": self.I_max,
+            "Ce": self.Ce,
+            "Sumax": self.Su_max,
+            "Beta": self.beta,
+            "Pmax": self.P_max,
+            "Tlag": self.T_lag,
+            "Kf": self.Kf,
+            "Ks": self.Ks,
+            "FM": self.FM,
+            "Si": self.Si,
+            "Su": self.Su,
+            "Sf": self.Sf,
+            "Ss": self.Ss,
+            "Sp": self.Sp,
+            "M_dt": self.M_dt,
+            "Ei_dt": self.Ei_dt,
+            "Ea_dt": self.Ea_dt,
+            "Qs_dt": self.Qs_dt,
+            "Qf_dt": self.Qf_dt,
+            "Q_tot_dt": self.Q_tot_dt,
+            "Q": self.Q,
+        }
 
     def updating_obj_from_dict_var(self) -> None:
         """Function which inverts the dictionary above & sets objects correctly"""
@@ -232,13 +242,18 @@ class HBV(Bmi):
                 weights[i] = (float(i + 1) - 0.5) / th
             i = nh
 
-            weights[i] = (1 + (float(i + 1) - 1) / th) * (th - int(np.floor(th))) / 2 + (
-                        1 + (self.T_lag - float(i + 1)) / th) * (int(np.floor(th)) + 1 - th) / 2
+            weights[i] = (1 + (float(i + 1) - 1) / th) * (
+                th - int(np.floor(th))
+            ) / 2 + (1 + (self.T_lag - float(i + 1)) / th) * (
+                int(np.floor(th)) + 1 - th
+            ) / 2
             for i in range(nh + 1, int(np.floor(self.T_lag))):
                 weights[i] = (self.T_lag - float(i + 1) + 0.5) / th
 
             if self.T_lag > int(np.floor(self.T_lag)):
-                weights[int(np.floor(self.T_lag))] = (self.T_lag - int(np.floor(self.T_lag))) ** 2 / (2 * th)
+                weights[int(np.floor(self.T_lag))] = (
+                    self.T_lag - int(np.floor(self.T_lag))
+                ) ** 2 / (2 * th)
 
             weights = weights / sum(weights)
 
@@ -271,18 +286,19 @@ class HBV(Bmi):
         # first update the dictionary to match the current values of object
         self.updating_dict_var_obj()
         # handle the memory vector
-        if var_name[:len("memory_vector")] == "memory_vector":
+        if var_name[: len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 dest[:] = np.array(None)
                 message = "No action undertaken. Please use `set_value(f'memory_vector{n}',src)` where n is the index."
                 warnings.warn(message, category=SyntaxWarning)
             else:
-                mem_index = int(var_name[len("memory_vector"):])
+                mem_index = int(var_name[len("memory_vector") :])
                 if mem_index < len(self.memory_vector_lag):
                     dest[:] = self.memory_vector_lag[mem_index]
                 else:
                     raise IndexError(
-                        f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
+                        f"{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}"
+                    )
 
             return dest
         # otherwise return the variable from the dictionary
@@ -316,24 +332,25 @@ class HBV(Bmi):
                 new_memory_vector[:old_T_lag] = old_memory_vector
             # if the new vector is shorter, we sum the old extra values to the last value: as not to `lose` water
             elif old_T_lag > self.T_lag:
-                new_memory_vector = old_memory_vector[:self.T_lag]
-                new_memory_vector[-1] += sum(old_memory_vector[self.T_lag:])
+                new_memory_vector = old_memory_vector[: self.T_lag]
+                new_memory_vector[-1] += sum(old_memory_vector[self.T_lag :])
             # set new vector
             self.memory_vector_lag = new_memory_vector
 
         # 2. values in the memory vector must be set manually to work with DA
-        elif var_name[:len("memory_vector")] == "memory_vector":
+        elif var_name[: len("memory_vector")] == "memory_vector":
             if var_name == "memory_vector":
                 message = "No action undertaken. Please use `set_value(memory_vector{n},src)` where n is the index."
                 warnings.warn(message=message, category=SyntaxWarning)
                 pass
             else:
-                mem_index = int(var_name[len("memory_vector"):])
+                mem_index = int(var_name[len("memory_vector") :])
                 if mem_index < len(self.memory_vector_lag):
                     self.memory_vector_lag[mem_index] = src[0]
                 else:
                     raise IndexError(
-                        f'{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}')
+                        f"{mem_index} is out of range for memory vector size {len(self.memory_vector_lag)}"
+                    )
 
         # all other values can be set here
         elif var_name in self.dict_var_obj:
@@ -360,7 +377,7 @@ class HBV(Bmi):
 
     def get_current_time(self) -> float:
         """Return current time in seconds since 1 january 1970."""
-        # we get the timestep from the data, but the stopping condition requires it to go one beyond. 
+        # we get the timestep from the data, but the stopping condition requires it to go one beyond.
         return get_unixtime(self.time[self.current_timestep])  # type: ignore
 
     def set_tlag(self, T_lag_in) -> int:
@@ -381,11 +398,14 @@ class HBV(Bmi):
 
     # TODO implement setting different timestep?
     def get_value_at_indices(
-            self, name: str, dest: np.ndarray, inds: np.ndarray) -> np.ndarray:
+        self, name: str, dest: np.ndarray, inds: np.ndarray
+    ) -> np.ndarray:
         raise NotImplementedError()
 
     # TODO implement
-    def set_value_at_indices(self, name: str, inds: np.ndarray, src: np.ndarray) -> None:
+    def set_value_at_indices(
+        self, name: str, inds: np.ndarray, src: np.ndarray
+    ) -> None:
         raise NotImplementedError()
 
     def get_var_itemsize(self, name: str) -> int:
@@ -416,7 +436,7 @@ class HBV(Bmi):
         return shape
 
     def get_grid_origin(self, grid: int, origin: np.ndarray) -> np.ndarray:
-        origin[:] = np.array([0., 0.])
+        origin[:] = np.array([0.0, 0.0])
         return origin
 
     # Non-uniform rectilinear, curvilinear
@@ -429,10 +449,21 @@ class HBV(Bmi):
         return y
 
     def finalize(self) -> None:
-        """"remove all files"""
-        del (self.config, self.ds_P, self.P, self.ds_EP, self.EP, self.ds_Tmean,
-             self.Tmean, self.time, self.end_timestep , self.current_timestep, self.dt,
-             self.memory_vector_lag)
+        """ "remove all files"""
+        del (
+            self.config,
+            self.ds_P,
+            self.P,
+            self.ds_EP,
+            self.EP,
+            self.ds_Tmean,
+            self.Tmean,
+            self.time,
+            self.end_timestep,
+            self.current_timestep,
+            self.dt,
+            self.memory_vector_lag,
+        )
         gc.collect()
 
     # not implemented & not planning to
@@ -480,7 +511,8 @@ class HBV(Bmi):
         raise NotImplementedError()
 
     def get_grid_nodes_per_face(
-            self, grid: int, nodes_per_face: np.ndarray) -> np.ndarray:
+        self, grid: int, nodes_per_face: np.ndarray
+    ) -> np.ndarray:
         raise NotImplementedError()
 
 
