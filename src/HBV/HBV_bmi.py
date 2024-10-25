@@ -1,11 +1,12 @@
 import gc
 
-from bmipy import Bmi
-from typing import Any, Tuple
+from typing import Any, Tuple, TYPE_CHECKING
 from HBV import utils
 import numpy as np
 import warnings
-import gc
+
+if TYPE_CHECKING:
+    from bmipy import Bmi
 
 DICT_VAR_UNITS = {
     "Imax": "mm",
@@ -32,7 +33,7 @@ DICT_VAR_UNITS = {
 }
 
 
-class HBV(Bmi):
+class HBV("Bmi"):
     """HBV model wrapped in a BMI interface."""
 
     def initialize(self, config_file: str) -> None:
@@ -400,7 +401,11 @@ class HBV(Bmi):
     def get_value_at_indices(
         self, name: str, dest: np.ndarray, inds: np.ndarray
     ) -> np.ndarray:
-        raise NotImplementedError()
+        if inds != np.array([0]):
+            msg = "Lumped model: only valid index is 0"
+            raise ValueError(msg)
+        return self.get_value(name, dest)
+
 
     # TODO implement
     def set_value_at_indices(
@@ -466,16 +471,14 @@ class HBV(Bmi):
         )
         gc.collect()
 
-    # not implemented & not planning to
-
     def get_input_var_names(self) -> Tuple[str]:
-        raise NotImplementedError()
+        return ("Tlag", "memory_vector")
 
     def get_input_item_count(self) -> int:
-        raise NotImplementedError()
+        return 2
 
     def get_output_item_count(self) -> int:
-        raise NotImplementedError()
+        return len(DICT_VAR_UNITS)
 
     def get_value_ptr(self, name: str) -> np.ndarray:
         raise NotImplementedError()
@@ -484,7 +487,8 @@ class HBV(Bmi):
         raise NotImplementedError()
 
     def update_until(self, time: float) -> None:
-        raise NotImplementedError()
+        while time < self.get_current_time() and time < self.get_end_time():
+            self.update()
 
     def get_grid_spacing(self, grid: int, spacing: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
